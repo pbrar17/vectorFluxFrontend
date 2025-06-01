@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>3D Vector Field Plotter</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjs@11.11.0/lib/browser/math.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #fdfdfd;
+            color: #333;
+        }
+        header {
+            background-color: #0077cc;
+            color: white;
+            padding: 20px 40px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        h1 {
+            margin: 0;
+            font-size: 2em;
+        }
+        nav {
+            margin-top: 10px;
+            background: #eee;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        nav a {
+            margin-right: 15px;
+            color: #0077cc;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        nav a:hover, nav a.active {
+            text-decoration: underline;
+            color: #005fa3;
+        }
+        main {
+            padding: 40px;
+            max-width: 900px;
+            margin: auto;
+        }
+        label {
+            font-weight: bold;
+        }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            margin-bottom: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 10px 20px;
+            background-color: #0077cc;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1em;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #005fa3;
+        }
+        #plot3d {
+            width: 100%;
+            height: 600px;
+            margin-top: 30px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>3D Vector Field Plotter</h1>
+       <nav>
+    <a href="index.html">Derivative Calculator</a>
+    <a href="3dplot.html">3D Plotter</a>
+    <a href="vectorfield3dplotter.html">Vector Field Plotter</a>
+    <a href="statisticalsolver.html">Statistical Solver</a>
+    <a href="vecplot.html" class="active">VecPlot</a>
+  </nav>
+    </header>
+    <main>
+        <form id="plot-form">
+            <label for="u">u(x,y,z) component:</label>
+            <input type="text" id="u" name="u" placeholder="e.g. -y" required>
+
+            <label for="v">v(x,y,z) component:</label>
+            <input type="text" id="v" name="v" placeholder="e.g. x" required>
+
+            <label for="w">w(x,y,z) component:</label>
+            <input type="text" id="w" name="w" placeholder="e.g. 0" required>
+
+            <label for="rangeMin">Range min (for x,y,z):</label>
+            <input type="number" id="rangeMin" name="rangeMin" value="-2" required>
+
+            <label for="rangeMax">Range max (for x,y,z):</label>
+            <input type="number" id="rangeMax" name="rangeMax" value="2" required>
+
+            <label for="stepSize">Step size:</label>
+            <input type="number" id="stepSize" name="stepSize" value="0.8" step="0.1" required>
+
+            <button type="submit">Plot Vector Field</button>
+        </form>
+
+        <div id="plot3d"></div>
+    </main>
+
+    <script>
+        document.getElementById("plot-form").addEventListener("submit", (e) => {
+            e.preventDefault();
+
+            const uStr = document.getElementById("u").value;
+            const vStr = document.getElementById("v").value;
+            const wStr = document.getElementById("w").value;
+            const min = parseFloat(document.getElementById("rangeMin").value);
+            const max = parseFloat(document.getElementById("rangeMax").value);
+            const step = parseFloat(document.getElementById("stepSize").value);
+
+            if (isNaN(min) || isNaN(max) || isNaN(step) || min >= max || step <= 0) {
+                alert("Please enter valid numerical values with min < max and step > 0.");
+                return;
+            }
+
+            plot3DVectorField(uStr, vStr, wStr, min, max, step);
+        });
+
+        function plot3DVectorField(uStr, vStr, wStr, min, max, step) {
+            // Prepare mathjs expressions, fix ^ to **, ln to log
+            const uExprStr = uStr.replace(/\^/g, "**").replace(/ln/g, "log");
+            const vExprStr = vStr.replace(/\^/g, "**").replace(/ln/g, "log");
+            const wExprStr = wStr.replace(/\^/g, "**").replace(/ln/g, "log");
+
+            let uExpr, vExpr, wExpr;
+            try {
+                uExpr = math.compile(uExprStr);
+                vExpr = math.compile(vExprStr);
+                wExpr = math.compile(wExprStr);
+            } catch (err) {
+                alert("Invalid vector component function(s).");
+                return;
+            }
+
+            const xs = [];
+            const ys = [];
+            const zs = [];
+            const us = [];
+            const vs = [];
+            const ws = [];
+
+            for(let x = min; x <= max; x += step) {
+                for(let y = min; y <= max; y += step) {
+                    for(let z = min; z <= max; z += step) {
+                        xs.push(x);
+                        ys.push(y);
+                        zs.push(z);
+
+                        let scope = {x, y, z};
+                        try {
+                            let uVal = uExpr.evaluate(scope);
+                            let vVal = vExpr.evaluate(scope);
+                            let wVal = wExpr.evaluate(scope);
+
+                            // Replace non-finite with 0 to avoid Plotly errors
+                            us.push(Number.isFinite(uVal) ? uVal : 0);
+                            vs.push(Number.isFinite(vVal) ? vVal : 0);
+                            ws.push(Number.isFinite(wVal) ? wVal : 0);
+                        } catch {
+                            us.push(0);
+                            vs.push(0);
+                            ws.push(0);
+                        }
+                    }
+                }
+            }
+
+            const data = [{
+                type: 'cone',
+                x: xs,
+                y: ys,
+                z: zs,
+                u: us,
+                v: vs,
+                w: ws,
+                sizemode: 'absolute',
+                sizeref: 0.4,
+                colorscale: 'Viridis',
+                showscale: true,
+                anchor: 'tail'
+            }];
+
+            const layout = {
+                title: `3D Vector Field: u=${uStr}, v=${vStr}, w=${wStr}`,
+                scene: {
+                    xaxis: { title: 'x', range: [min, max] },
+                    yaxis: { title: 'y', range: [min, max] },
+                    zaxis: { title: 'z', range: [min, max] },
+                },
+                autosize: true,
+            };
+
+            Plotly.newPlot('plot3d', data, layout, {responsive: true});
+        }
+    </script>
+</body>
+</html>
