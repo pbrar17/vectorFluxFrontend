@@ -93,12 +93,10 @@
       align-items: center;
     }
 
-    /* Scale down the big plot */
+    /* Fix plot size: fill the wrapper exactly, no scaling */
     #plot {
-      width: 6000px;      /* internal render width */
-      height: 4000px;     /* internal render height */
-      transform: scale(0.1);   /* scale down 10x */
-      transform-origin: top left;
+      width: 600px;
+      height: 400px;
     }
 
     .latex-preview {
@@ -257,8 +255,8 @@
         margin: { l: 0, r: 0, t: 0, b: 0 },
         showlegend: false,
         dragmode: false,
-        width: 6000,
-        height: 4000
+        width: 600,       // <-- visible plot size
+        height: 400
       }, {
         staticPlot: true
       });
