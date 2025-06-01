@@ -79,21 +79,18 @@
       background: #0056b3;
     }
 
-    /* Wrapper to fix visible size */
     #plot-wrapper {
-      width: 600px;        /* visible width */
-      height: 400px;       /* visible height */
+      width: 600px;
+      height: 400px;
       overflow: hidden;
       margin: 20px auto;
       border: 1px solid #444;
       background: black;
-      /* optionally center the plot */
       display: flex;
       justify-content: center;
       align-items: center;
     }
 
-    /* Fix plot size: fill the wrapper exactly, no scaling */
     #plot {
       width: 600px;
       height: 400px;
@@ -107,6 +104,22 @@
       display: inline-block;
       min-width: 150px;
       font-family: "Latin Modern Math", "STIX Math", "Cambria Math", serif;
+    }
+
+    .range-inputs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 10px;
+    }
+
+    .range-inputs label {
+      width: auto;
+      margin-right: 5px;
+    }
+
+    .range-inputs input {
+      width: 120px;
     }
   </style>
 </head>
@@ -134,6 +147,25 @@
       <span class="latex-preview" id="vLatex"></span>
     </div>
 
+    <div class="range-inputs">
+      <div>
+        <label for="xMin">xMin</label><br>
+        <input id="xMin" type="number" value="-5">
+      </div>
+      <div>
+        <label for="xMax">xMax</label><br>
+        <input id="xMax" type="number" value="5">
+      </div>
+      <div>
+        <label for="yMin">yMin</label><br>
+        <input id="yMin" type="number" value="-5">
+      </div>
+      <div>
+        <label for="yMax">yMax</label><br>
+        <input id="yMax" type="number" value="5">
+      </div>
+    </div>
+
     <div>
       <button id="plotBtn" onclick="plotStreamlines()">Plot Streamlines</button>
       <button id="downloadBtn" onclick="downloadJPEG()">Download JPEG</button>
@@ -147,7 +179,6 @@
   <script>
     let uCompiled, vCompiled;
 
-    // Convert mathjs expression to LaTeX for preview
     function toLatex(expr) {
       try {
         return math.parse(expr).toTex({ parenthesis: 'keep' });
@@ -156,7 +187,6 @@
       }
     }
 
-    // Update LaTeX preview below inputs and re-typeset MathJax
     function updateLatex() {
       const uExpr = document.getElementById('uInput').value.trim();
       const vExpr = document.getElementById('vInput').value.trim();
@@ -166,7 +196,6 @@
       MathJax.typesetPromise();
     }
 
-    // Compile user expressions with mathjs
     function compileExpressions() {
       try {
         uCompiled = math.compile(document.getElementById('uInput').value);
@@ -178,7 +207,6 @@
       }
     }
 
-    // Safely evaluate compiled expressions with given x,y
     function evaluate(expr, scope) {
       try {
         return expr.evaluate(scope);
@@ -187,12 +215,14 @@
       }
     }
 
-    // Main plotting function for streamlines
     function plotStreamlines() {
       if (!compileExpressions()) return;
 
-      // Vector field domain and settings
-      const xMin = -5, xMax = 5, yMin = -5, yMax = 5;
+      const xMin = parseFloat(document.getElementById("xMin").value);
+      const xMax = parseFloat(document.getElementById("xMax").value);
+      const yMin = parseFloat(document.getElementById("yMin").value);
+      const yMax = parseFloat(document.getElementById("yMax").value);
+
       const density = 40;
       const stepSize = 0.05;
       const steps = 80;
@@ -255,14 +285,13 @@
         margin: { l: 0, r: 0, t: 0, b: 0 },
         showlegend: false,
         dragmode: false,
-        width: 600,       // <-- visible plot size
+        width: 600,
         height: 400
       }, {
         staticPlot: true
       });
     }
 
-    // Download the current plot as JPEG at full resolution
     function downloadJPEG() {
       Plotly.downloadImage('plot', {
         format: 'jpeg',
@@ -272,7 +301,6 @@
       });
     }
 
-    // On load: render LaTeX and initial plot
     updateLatex();
     plotStreamlines();
   </script>
