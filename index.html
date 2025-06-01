@@ -80,8 +80,8 @@
     }
 
     #plot-wrapper {
-      width: 600px;
-      height: 400px;
+      width: 1920px;
+      height: 1080px;
       overflow: hidden;
       margin: 20px auto;
       border: 1px solid #444;
@@ -92,8 +92,8 @@
     }
 
     #plot {
-      width: 600px;
-      height: 400px;
+      width: 1920px;
+      height: 1080px;
     }
 
     .latex-preview {
@@ -312,8 +312,8 @@
         margin: { l: 0, r: 0, t: 0, b: 0 },
         showlegend: false,
         dragmode: false,
-        width: 600,
-        height: 400
+        width: 1920,
+        height: 1080
       }, {
         staticPlot: true
       });
@@ -322,14 +322,13 @@
     function downloadJPEG() {
       Plotly.downloadImage('plot', {
         format: 'jpeg',
-        width: 6000,
-        height: 4000,
+        width: 1920,
+        height: 1080,
         filename: 'vector_field_streamlines_art'
       });
     }
 
     updateLatex();
-    plotStreamlines();
   </script>
 </body>
 </html>
