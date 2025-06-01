@@ -47,7 +47,7 @@
 
     .container {
       padding: 20px;
-      max-width: 1400px; /* match new plot width */
+      max-width: 1200px;
       margin: 0 auto;
     }
 
@@ -80,7 +80,7 @@
     }
 
     #plot-wrapper {
-      width: 1400px;
+      width: 1000px;
       height: 600px;
       overflow: hidden;
       margin: 20px auto;
@@ -91,10 +91,9 @@
       align-items: center;
     }
 
-    /* Make plot fill the entire wrapper */
     #plot {
-      width: 100%;
-      height: 100%;
+      width: 1000px;
+      height: 800px;
     }
 
     .latex-preview {
@@ -271,95 +270,66 @@
             const scope = { x, y };
             const u = evaluate(uCompiled, scope);
             const v = evaluate(vCompiled, scope);
-            const mag = Math.sqrt(u * u + v * v) + 1e-10;
-
-            if (mag < 1e-5) break;
+            const mag = Math.sqrt(u * u + v * v) + 1e-8;
 
             magnitudes.push(mag);
 
-            // Euler integration for next point (simple forward step)
             x += (u / mag) * stepSize;
             y += (v / mag) * stepSize;
 
-            // Stop if out of bounds
             if (x < xMin || x > xMax || y < yMin || y > yMax) break;
 
             streamlineX.push(x);
             streamlineY.push(y);
           }
 
-          // Compute average magnitude for coloring streamline
-          const avgMag = magnitudes.reduce((a, b) => a + b, 0) / (magnitudes.length || 1);
-          const color = colorScale(avgMag);
+          if (streamlineX.length > 1) {
+            const avgMag = magnitudes.reduce((a, b) => a + b, 0) / magnitudes.length;
 
-          traces.push({
-            x: streamlineX,
-            y: streamlineY,
-            mode: 'lines',
-            line: { color: color, width: 1.8 },
-            hoverinfo: 'none',
-            showlegend: false
-          });
+            traces.push({
+              type: 'scatter',
+              mode: 'lines',
+              line: {
+                width: 2,
+                shape: 'spline',
+                simplify: false,
+                color: colorScale(avgMag)
+              },
+              x: streamlineX,
+              y: streamlineY,
+              hoverinfo: 'none',
+              showlegend: false
+            });
+          }
         }
       }
 
-      const layout = {
-        xaxis: {
-          range: [xMin, xMax],
-          zeroline: false,
-          showgrid: false,
-          visible: true,
-          showline: true,
-          linecolor: '#888',
-          mirror: 'ticks',
-          tickfont: { color: 'white' },
-          gridcolor: '#333'
-        },
-        yaxis: {
-          range: [yMin, yMax],
-          scaleanchor: 'x',
-          scaleratio: 1,
-          zeroline: false,
-          showgrid: false,
-          visible: true,
-          showline: true,
-          linecolor: '#888',
-          mirror: 'ticks',
-          tickfont: { color: 'white' },
-          gridcolor: '#333'
-        },
-        margin: { t: 20, b: 40, l: 60, r: 20 },
-        plot_bgcolor: 'black',
+      Plotly.newPlot('plot', traces, {
+        xaxis: { range: [xMin, xMax], visible: false },
+        yaxis: { range: [yMin, yMax], visible: false },
         paper_bgcolor: 'black',
-        dragmode: 'pan',
-        hovermode: false,
-        width: 1400,
-        height: 600,
-      };
-
-      Plotly.newPlot('plot', traces, layout, {displayModeBar: false, responsive: true});
+        plot_bgcolor: 'black',
+        margin: { l: 0, r: 0, t: 0, b: 0 },
+        showlegend: false,
+        dragmode: false,
+        width: 600,
+        height: 400
+      }, {
+        staticPlot: true
+      });
     }
 
     function downloadJPEG() {
-      Plotly.toImage(document.getElementById('plot'), {format: 'jpeg', width: 1400, height: 600})
-        .then(function (dataUrl) {
-          const a = document.createElement('a');
-          a.href = dataUrl;
-          a.download = 'vectorfield_streamlines.jpg';
-          document.body.appendChild(a);
-          a.click();
-          document.body.removeChild(a);
-        })
-        .catch(err => alert('Error generating image: ' + err));
+      Plotly.downloadImage('plot', {
+        format: 'jpeg',
+        width: 6000,
+        height: 4000,
+        filename: 'vector_field_streamlines_art'
+      });
     }
 
-    // Initialize LaTeX previews
     updateLatex();
-
-    // Initial plot
-    window.onload = () => {
-      plotStreamlines();
-    };
+    plotStreamlines();
   </script>
 </body>
-</html>
+</html> id like the plot showing on the webpage to be slightly larger 
