@@ -79,14 +79,26 @@
       background: #0056b3;
     }
 
-    /* Plot container fixes */
-    #plot {
-      width: 100%;
-      max-width: 1000px;
-      aspect-ratio: 3 / 2;
+    /* Wrapper to fix visible size */
+    #plot-wrapper {
+      width: 600px;        /* visible width */
+      height: 400px;       /* visible height */
+      overflow: hidden;
       margin: 20px auto;
       border: 1px solid #444;
       background: black;
+      /* optionally center the plot */
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Scale down the big plot */
+    #plot {
+      width: 6000px;      /* internal render width */
+      height: 4000px;     /* internal render height */
+      transform: scale(0.1);   /* scale down 10x */
+      transform-origin: top left;
     }
 
     .latex-preview {
@@ -129,7 +141,9 @@
       <button id="downloadBtn" onclick="downloadJPEG()">Download JPEG</button>
     </div>
 
-    <div id="plot"></div>
+    <div id="plot-wrapper">
+      <div id="plot"></div>
+    </div>
   </div>
 
   <script>
@@ -151,7 +165,7 @@
 
       document.getElementById('uLatex').innerHTML = `\\( u(x, y) = ${toLatex(uExpr)} \\)`;
       document.getElementById('vLatex').innerHTML = `\\( v(x, y) = ${toLatex(vExpr)} \\)`;
-      MathJax.typesetPromise();  // Use typesetPromise for async-safe re-rendering
+      MathJax.typesetPromise();
     }
 
     // Compile user expressions with mathjs
@@ -181,7 +195,7 @@
 
       // Vector field domain and settings
       const xMin = -5, xMax = 5, yMin = -5, yMax = 5;
-      const density = 40;   // number of seed points per axis
+      const density = 40;
       const stepSize = 0.05;
       const steps = 80;
 
@@ -250,7 +264,7 @@
       });
     }
 
-    // Download the current plot as JPEG
+    // Download the current plot as JPEG at full resolution
     function downloadJPEG() {
       Plotly.downloadImage('plot', {
         format: 'jpeg',
