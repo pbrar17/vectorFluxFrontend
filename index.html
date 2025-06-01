@@ -55,7 +55,7 @@
       font-weight: bold;
     }
 
-    input, button {
+    input, button, select {
       padding: 10px;
       margin: 5px 10px 15px 0;
       font-size: 16px;
@@ -167,6 +167,20 @@
     </div>
 
     <div>
+      <label for="colorScheme">Color Scheme</label><br>
+      <select id="colorScheme">
+        <option value="Viridis">Viridis</option>
+        <option value="Plasma">Plasma</option>
+        <option value="Inferno">Inferno</option>
+        <option value="Magma">Magma</option>
+        <option value="Cool">Cool</option>
+        <option value="Warm">Warm</option>
+        <option value="Rainbow">Rainbow</option>
+        <option value="CubehelixDefault">Cubehelix</option>
+      </select>
+    </div>
+
+    <div>
       <button id="plotBtn" onclick="plotStreamlines()">Plot Streamlines</button>
       <button id="downloadBtn" onclick="downloadJPEG()">Download JPEG</button>
     </div>
@@ -222,13 +236,26 @@
       const xMax = parseFloat(document.getElementById("xMax").value);
       const yMin = parseFloat(document.getElementById("yMin").value);
       const yMax = parseFloat(document.getElementById("yMax").value);
+      const colorName = document.getElementById("colorScheme").value;
+
+      const d3Interpolators = {
+        Viridis: d3.interpolateViridis,
+        Plasma: d3.interpolatePlasma,
+        Inferno: d3.interpolateInferno,
+        Magma: d3.interpolateMagma,
+        Cool: d3.interpolateCool,
+        Warm: d3.interpolateWarm,
+        Rainbow: d3.interpolateRainbow,
+        CubehelixDefault: d3.interpolateCubehelixDefault
+      };
+
+      const colorScale = d3.scaleSequential(d3Interpolators[colorName]).domain([0, 2]);
 
       const density = 40;
       const stepSize = 0.05;
       const steps = 80;
 
       const traces = [];
-      const colorScale = d3.scaleSequential(d3.interpolateViridis).domain([0, 2]);
 
       for (let i = 0; i < density; i++) {
         for (let j = 0; j < density; j++) {
@@ -304,6 +331,5 @@
     updateLatex();
     plotStreamlines();
   </script>
-
 </body>
 </html>
