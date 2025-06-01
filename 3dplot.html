@@ -1,197 +1,221 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <title>3D Surface Plotter</title>
-    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mathjs@11.11.0/lib/browser/math.js"></script>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #fdfdfd;
-            color: #333;
-        }
-        header {
-            background-color: #0077cc;
-            color: white;
-            padding: 20px 40px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
-        h1 {
-            margin: 0;
-            font-size: 2em;
-        }
-        nav {
-            margin-top: 10px;
-            background: #eee;
-            padding: 10px;
-            border-radius: 5px;
-        }
-        nav a {
-            margin-right: 15px;
-            color: #0077cc;
-            text-decoration: none;
-            font-weight: bold;
-        }
-        nav a:hover, nav a.active {
-            text-decoration: underline;
-            color: #005fa3;
-        }
-        main {
-            padding: 40px;
-            max-width: 900px;
-            margin: auto;
-        }
-        label {
-            font-weight: bold;
-        }
-        input[type="text"], input[type="number"] {
-            width: 100%;
-            padding: 10px;
-            margin-top: 5px;
-            margin-bottom: 15px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            box-sizing: border-box;
-        }
-        button {
-            padding: 10px 20px;
-            background-color: #0077cc;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 1em;
-            cursor: pointer;
-        }
-        button:hover {
-            background-color: #005fa3;
-        }
-        #plot3d {
-            width: 100%;
-            height: 600px;
-            margin-top: 30px;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>3D Surface Plotter</title>
+
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjs@11.11.0/lib/browser/math.js"></script>
+
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      background: black;
+      color: white;
+    }
+
+    nav {
+      background: #000;
+      padding: 10px;
+      text-align: center;
+    }
+
+    nav a {
+      color: white;
+      margin: 0 15px;
+      text-decoration: none;
+      font-weight: bold;
+      font-size: 18px;
+      transition: color 0.3s;
+    }
+
+    nav a:hover {
+      color: #66ccff;
+    }
+
+    nav a.active {
+      text-decoration: underline;
+      color: #66ccff;
+    }
+
+    .container {
+      padding: 20px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      font-weight: bold;
+      font-size: 2.2em;
+      text-align: center;
+    }
+
+    label {
+      font-weight: bold;
+      display: block;
+      margin-top: 15px;
+      margin-bottom: 5px;
+    }
+
+    input[type="text"], input[type="number"] {
+      padding: 10px;
+      font-size: 16px;
+      background: #222;
+      color: white;
+      border: 1px solid #555;
+      border-radius: 4px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      background: #007bff;
+      color: white;
+      font-size: 16px;
+      padding: 12px 25px;
+      border-radius: 4px;
+      margin-top: 20px;
+      transition: background 0.3s;
+      display: block;
+      width: 100%;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    #plot3d {
+      width: 100%;
+      height: 600px;
+      margin-top: 30px;
+      border: 1px solid #444;
+      background: black;
+    }
+  </style>
 </head>
 <body>
-    <header>
-        <h1>3D Surface Plotter</h1>
-        <nav>
-    <!-- <a href="index.html">Derivative Calculator</a> -->
-    <a href="3dplot.html">3D Plotter</a>
+
+  <nav>
+    <a href="3dplot.html" class="active">3D Plotter</a>
     <a href="vectorfield3dplotter.html">Vector Field Plotter</a>
     <a href="statisticalsolver.html">Statistical Solver</a>
-    <a href="index.html" class="active">VecPlot</a>
+    <a href="index.html">VecPlot</a>
   </nav>
-    </header>
-    <main>
-        <form id="plot-form">
-            <label for="fxy">Function z = f(x,y):</label>
-            <input type="text" id="fxy" name="fxy" placeholder="e.g. sin(sqrt(x^2 + y^2))" required>
 
-            <label for="xMin">x range min:</label>
-            <input type="number" id="xMin" name="xMin" value="-5" required>
+  <div class="container">
+    <h1>3D Surface Plotter</h1>
 
-            <label for="xMax">x range max:</label>
-            <input type="number" id="xMax" name="xMax" value="5" required>
+    <form id="plot-form">
+      <label for="fxy">Function z = f(x, y):</label>
+      <input type="text" id="fxy" name="fxy" placeholder="e.g. sin(sqrt(x^2 + y^2))" required />
 
-            <label for="yMin">y range min:</label>
-            <input type="number" id="yMin" name="yMin" value="-5" required>
+      <label for="xMin">x range min:</label>
+      <input type="number" id="xMin" name="xMin" value="-5" required />
 
-            <label for="yMax">y range max:</label>
-            <input type="number" id="yMax" name="yMax" value="5" required>
+      <label for="xMax">x range max:</label>
+      <input type="number" id="xMax" name="xMax" value="5" required />
 
-            <label for="stepSize">Step size:</label>
-            <input type="number" id="stepSize" name="stepSize" value="0.3" step="0.01" required>
+      <label for="yMin">y range min:</label>
+      <input type="number" id="yMin" name="yMin" value="-5" required />
 
-            <button type="submit">Plot Surface</button>
-        </form>
+      <label for="yMax">y range max:</label>
+      <input type="number" id="yMax" name="yMax" value="5" required />
 
-        <div id="plot3d"></div>
-    </main>
+      <label for="stepSize">Step size:</label>
+      <input type="number" id="stepSize" name="stepSize" value="0.3" step="0.01" required />
 
-    <script>
-        document.getElementById("plot-form").addEventListener("submit", (e) => {
-            e.preventDefault();
+      <button type="submit">Plot Surface</button>
+    </form>
 
-            const fStr = document.getElementById("fxy").value;
-            const xMin = parseFloat(document.getElementById("xMin").value);
-            const xMax = parseFloat(document.getElementById("xMax").value);
-            const yMin = parseFloat(document.getElementById("yMin").value);
-            const yMax = parseFloat(document.getElementById("yMax").value);
-            const step = parseFloat(document.getElementById("stepSize").value);
+    <div id="plot3d"></div>
+  </div>
 
-            if ([xMin, xMax, yMin, yMax, step].some(v => isNaN(v)) || xMin >= xMax || yMin >= yMax || step <= 0) {
-                alert("Please enter valid numerical values with min < max and step > 0.");
-                return;
-            }
+  <script>
+    document.getElementById("plot-form").addEventListener("submit", (e) => {
+      e.preventDefault();
 
-            plot3DSurface(fStr, xMin, xMax, yMin, yMax, step);
-        });
+      const fStr = document.getElementById("fxy").value;
+      const xMin = parseFloat(document.getElementById("xMin").value);
+      const xMax = parseFloat(document.getElementById("xMax").value);
+      const yMin = parseFloat(document.getElementById("yMin").value);
+      const yMax = parseFloat(document.getElementById("yMax").value);
+      const step = parseFloat(document.getElementById("stepSize").value);
 
-        function plot3DSurface(fStr, xMin, xMax, yMin, yMax, step) {
-            // Replace ^ with **, ln with log for mathjs compatibility
-            const exprStr = fStr.replace(/\^/g, "**").replace(/ln/g, "log");
-            let expr;
-            try {
-                expr = math.compile(exprStr);
-            } catch (err) {
-                alert("Invalid function expression.");
-                return;
-            }
+      if ([xMin, xMax, yMin, yMax, step].some(v => isNaN(v)) || xMin >= xMax || yMin >= yMax || step <= 0) {
+        alert("Please enter valid numerical values with min < max and step > 0.");
+        return;
+      }
 
-            // Generate grid points
-            const xVals = [];
-            for(let x = xMin; x <= xMax; x += step) xVals.push(x);
-            const yVals = [];
-            for(let y = yMin; y <= yMax; y += step) yVals.push(y);
+      plot3DSurface(fStr, xMin, xMax, yMin, yMax, step);
+    });
 
-            // Generate Z matrix for surface plot
-            const zVals = [];
-            for(let i = 0; i < yVals.length; i++) {
-                const row = [];
-                for(let j = 0; j < xVals.length; j++) {
-                    let scope = {x: xVals[j], y: yVals[i]};
-                    try {
-                        let z = expr.evaluate(scope);
-                        row.push(Number.isFinite(z) ? z : NaN);
-                    } catch {
-                        row.push(NaN);
-                    }
-                }
-                zVals.push(row);
-            }
+    function plot3DSurface(fStr, xMin, xMax, yMin, yMax, step) {
+      const exprStr = fStr.replace(/\^/g, "**").replace(/ln/g, "log");
+      let expr;
+      try {
+        expr = math.compile(exprStr);
+      } catch (err) {
+        alert("Invalid function expression.");
+        return;
+      }
 
-            const data = [{
-                type: 'surface',
-                x: xVals,
-                y: yVals,
-                z: zVals,
-                colorscale: 'Viridis',
-                contours: {
-                    z: {
-                        show: true,
-                        usecolormap: true,
-                        highlightcolor: "#42f462",
-                        project: { z: true }
-                    }
-                }
-            }];
+      const xVals = [];
+      for (let x = xMin; x <= xMax; x += step) xVals.push(x);
+      const yVals = [];
+      for (let y = yMin; y <= yMax; y += step) yVals.push(y);
 
-            const layout = {
-                title: `3D Surface: z = ${fStr}`,
-                scene: {
-                    xaxis: { title: 'x', range: [xMin, xMax] },
-                    yaxis: { title: 'y', range: [yMin, yMax] },
-                    zaxis: { title: 'z' },
-                },
-                autosize: true,
-            };
-
-            Plotly.newPlot('plot3d', data, layout, {responsive: true});
+      const zVals = [];
+      for (let i = 0; i < yVals.length; i++) {
+        const row = [];
+        for (let j = 0; j < xVals.length; j++) {
+          let scope = { x: xVals[j], y: yVals[i] };
+          try {
+            let z = expr.evaluate(scope);
+            row.push(Number.isFinite(z) ? z : NaN);
+          } catch {
+            row.push(NaN);
+          }
         }
-    </script>
+        zVals.push(row);
+      }
+
+      const data = [{
+        type: 'surface',
+        x: xVals,
+        y: yVals,
+        z: zVals,
+        colorscale: 'Viridis',
+        contours: {
+          z: {
+            show: true,
+            usecolormap: true,
+            highlightcolor: "#42f462",
+            project: { z: true }
+          }
+        }
+      }];
+
+      const layout = {
+        title: `3D Surface: z = ${fStr}`,
+        titlefont: { color: 'white' },
+        scene: {
+          xaxis: { title: 'x', range: [xMin, xMax], color: 'white' },
+          yaxis: { title: 'y', range: [yMin, yMax], color: 'white' },
+          zaxis: { title: 'z', color: 'white' },
+          bgcolor: 'black',
+        },
+        paper_bgcolor: 'black',
+        plot_bgcolor: 'black',
+        autosize: true,
+      };
+
+      Plotly.newPlot('plot3d', data, layout, { responsive: true, displayModeBar: false });
+    }
+  </script>
 </body>
 </html>
