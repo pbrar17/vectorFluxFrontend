@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Vector Field Streamlines</title>
 
   <!-- Libraries -->
@@ -23,6 +24,7 @@
     nav {
       background: #000;
       padding: 10px;
+      text-align: center;
     }
 
     nav a {
@@ -30,46 +32,77 @@
       margin: 0 15px;
       text-decoration: none;
       font-weight: bold;
+      font-size: 18px;
+      transition: color 0.3s;
+    }
+
+    nav a:hover {
+      color: #66ccff;
     }
 
     nav a.active {
       text-decoration: underline;
+      color: #66ccff;
     }
 
     .container {
       padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    label {
+      font-weight: bold;
     }
 
     input, button {
       padding: 10px;
-      margin: 5px;
+      margin: 5px 10px 15px 0;
       font-size: 16px;
       background: #222;
       color: white;
       border: 1px solid #555;
+      border-radius: 4px;
+      width: 300px;
+      max-width: 100%;
+      box-sizing: border-box;
     }
 
-    /* Fix: scale down the large plot visually but keep high internal resolution */
+    button {
+      cursor: pointer;
+      border: none;
+      background: #007bff;
+      transition: background 0.3s;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    /* Plot container fixes */
     #plot {
       width: 100%;
-      max-width: 1000px;       /* Browser-friendly max width */
-      height: auto;
-      aspect-ratio: 3 / 2;     /* Keep 6000x4000 aspect ratio */
-      margin: auto;
+      max-width: 1000px;
+      aspect-ratio: 3 / 2;
+      margin: 20px auto;
       border: 1px solid #444;
+      background: black;
     }
 
     .latex-preview {
-      margin-left: 5px;
-      font-size: 18px;
+      margin-left: 10px;
+      font-size: 20px;
       color: #ccc;
+      vertical-align: middle;
+      display: inline-block;
+      min-width: 150px;
+      font-family: "Latin Modern Math", "STIX Math", "Cambria Math", serif;
     }
   </style>
 </head>
 <body>
 
   <nav>
-    <!-- <a href="index.html">Derivative Calculator</a> -->
     <a href="3dplot.html">3D Plotter</a>
     <a href="vectorfield3dplotter.html">Vector Field Plotter</a>
     <a href="statisticalsolver.html">Statistical Solver</a>
@@ -79,16 +112,22 @@
   <div class="container">
     <h2>Interactive Vector Field Streamline Visualizer</h2>
 
-    <label>u(x, y) = </label>
-    <input id="uInput" value="sin(y)" size="40" oninput="updateLatex()" />
-    <span class="latex-preview" id="uLatex"></span>
-    <br>
-    <label>v(x, y) = </label>
-    <input id="vInput" value="cos(x)" size="40" oninput="updateLatex()" />
-    <span class="latex-preview" id="vLatex"></span>
-    <br>
-    <button onclick="plotStreamlines()">Plot Streamlines</button>
-    <button onclick="downloadJPEG()">Download JPEG</button>
+    <div>
+      <label for="uInput">u(x, y) = </label>
+      <input id="uInput" value="sin(y)" size="40" oninput="updateLatex()" autocomplete="off" spellcheck="false" />
+      <span class="latex-preview" id="uLatex"></span>
+    </div>
+
+    <div>
+      <label for="vInput">v(x, y) = </label>
+      <input id="vInput" value="cos(x)" size="40" oninput="updateLatex()" autocomplete="off" spellcheck="false" />
+      <span class="latex-preview" id="vLatex"></span>
+    </div>
+
+    <div>
+      <button id="plotBtn" onclick="plotStreamlines()">Plot Streamlines</button>
+      <button id="downloadBtn" onclick="downloadJPEG()">Download JPEG</button>
+    </div>
 
     <div id="plot"></div>
   </div>
@@ -96,34 +135,38 @@
   <script>
     let uCompiled, vCompiled;
 
+    // Convert mathjs expression to LaTeX for preview
     function toLatex(expr) {
       try {
         return math.parse(expr).toTex({ parenthesis: 'keep' });
       } catch {
-        return 'Invalid';
+        return '\\text{Invalid}';
       }
     }
 
+    // Update LaTeX preview below inputs and re-typeset MathJax
     function updateLatex() {
-      const uExpr = document.getElementById('uInput').value;
-      const vExpr = document.getElementById('vInput').value;
+      const uExpr = document.getElementById('uInput').value.trim();
+      const vExpr = document.getElementById('vInput').value.trim();
 
       document.getElementById('uLatex').innerHTML = `\\( u(x, y) = ${toLatex(uExpr)} \\)`;
       document.getElementById('vLatex').innerHTML = `\\( v(x, y) = ${toLatex(vExpr)} \\)`;
-      MathJax.typeset();
+      MathJax.typesetPromise();  // Use typesetPromise for async-safe re-rendering
     }
 
+    // Compile user expressions with mathjs
     function compileExpressions() {
       try {
         uCompiled = math.compile(document.getElementById('uInput').value);
         vCompiled = math.compile(document.getElementById('vInput').value);
         return true;
       } catch (err) {
-        alert("Invalid math expression.");
+        alert("Invalid math expression. Please check your input.");
         return false;
       }
     }
 
+    // Safely evaluate compiled expressions with given x,y
     function evaluate(expr, scope) {
       try {
         return expr.evaluate(scope);
@@ -132,11 +175,13 @@
       }
     }
 
+    // Main plotting function for streamlines
     function plotStreamlines() {
       if (!compileExpressions()) return;
 
+      // Vector field domain and settings
       const xMin = -5, xMax = 5, yMin = -5, yMax = 5;
-      const density = 40;
+      const density = 40;   // number of seed points per axis
       const stepSize = 0.05;
       const steps = 80;
 
@@ -173,7 +218,7 @@
             const avgMag = magnitudes.reduce((a, b) => a + b, 0) / magnitudes.length;
 
             traces.push({
-              type: 'scatter', // 'scatter' works better for download
+              type: 'scatter',
               mode: 'lines',
               line: {
                 width: 2,
@@ -198,13 +243,14 @@
         margin: { l: 0, r: 0, t: 0, b: 0 },
         showlegend: false,
         dragmode: false,
-        width: 6000,      // big internal render size
+        width: 6000,
         height: 4000
       }, {
         staticPlot: true
       });
     }
 
+    // Download the current plot as JPEG
     function downloadJPEG() {
       Plotly.downloadImage('plot', {
         format: 'jpeg',
@@ -214,7 +260,7 @@
       });
     }
 
-    // Initial setup
+    // On load: render LaTeX and initial plot
     updateLatex();
     plotStreamlines();
   </script>
