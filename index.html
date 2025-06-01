@@ -1,63 +1,223 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>VectorFlux</title>
-<link rel="stylesheet" href="styles.css" />
-<a href="faq.html" class="faq-button">FAQs</a>
-<a href="about.html" class="about-button">About Us</a>
+  <meta charset="UTF-8">
+  <title>Vector Field Streamlines</title>
+
+  <!-- Libraries -->
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.1/math.min.js"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async
+    src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      background: black;
+      color: white;
+    }
+
+    nav {
+      background: #000;
+      padding: 10px;
+    }
+
+    nav a {
+      color: white;
+      margin: 0 15px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    nav a.active {
+      text-decoration: underline;
+    }
+
+    .container {
+      padding: 20px;
+    }
+
+    input, button {
+      padding: 10px;
+      margin: 5px;
+      font-size: 16px;
+      background: #222;
+      color: white;
+      border: 1px solid #555;
+    }
+
+    /* Fix: scale down the large plot visually but keep high internal resolution */
+    #plot {
+      width: 100%;
+      max-width: 1000px;       /* Browser-friendly max width */
+      height: auto;
+      aspect-ratio: 3 / 2;     /* Keep 6000x4000 aspect ratio */
+      margin: auto;
+      border: 1px solid #444;
+    }
+
+    .latex-preview {
+      margin-left: 5px;
+      font-size: 18px;
+      color: #ccc;
+    }
+  </style>
 </head>
 <body>
-<h1>VectorFlux</h1>
-<form id="vectorForm">
-  <label for="u">u(x,y):</label><br/>
-  <input type="text" id="u" name="u" placeholder="e.g. sin(x)* cos(y)" required /><br/><br/>
-  <label for="v">v(x,y):</label><br/>
-  <input type="text" id="v" name="v" placeholder="e.g. cos(y)+sin(x)" required /><br/><br/>
-  <button type="submit">Render</button>
-</form>
 
-<h2>Output:</h2>
-<img id="outputImage" src="" alt="Rendered vector field will appear here" style="max-width:100%; display:none;"/>
+  <nav>
+    <a href="index.html">Derivative Calculator</a>
+    <a href="3dplot.html">3D Plotter</a>
+    <a href="vectorfield3dplotter.html">Vector Field Plotter</a>
+    <a href="statisticalsolver.html">Statistical Solver</a>
+    <a href="vecplot.html" class="active">VecPlot</a>
+  </nav>
 
-<script>
-document.getElementById('vectorForm').addEventListener('submit', async function(event) {
-    event.preventDefault();
+  <div class="container">
+    <h2>Interactive Vector Field Streamline Visualizer</h2>
 
-    const u = document.getElementById('u').value;
-    const v = document.getElementById('v').value;
-    const t = 0.0;
+    <label>u(x, y) = </label>
+    <input id="uInput" value="sin(y)" size="40" oninput="updateLatex()" />
+    <span class="latex-preview" id="uLatex"></span>
+    <br>
+    <label>v(x, y) = </label>
+    <input id="vInput" value="cos(x)" size="40" oninput="updateLatex()" />
+    <span class="latex-preview" id="vLatex"></span>
+    <br>
+    <button onclick="plotStreamlines()">Plot Streamlines</button>
+    <button onclick="downloadJPEG()">Download JPEG</button>
 
-    // Construct the inner JSON string exactly as lambda expects
-    const innerBody = JSON.stringify({ u, v, t });
+    <div id="plot"></div>
+  </div>
 
-    try {
-        const response = await fetch('https://uqigd2klta.execute-api.us-east-2.amazonaws.com/V1', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            // The lambda expects a "body" key whose value is a JSON string
-            body: JSON.stringify({ body: innerBody })
-        });
+  <script>
+    let uCompiled, vCompiled;
 
-        const data = await response.json();
-
-        if (response.ok && typeof data.body === 'string') {
-            const imageUrl = data.body;
-
-            const img = document.getElementById('outputImage');
-            img.src = imageUrl;
-            img.style.display = 'block';
-        } else {
-            alert('Rendering failed: ' + (data.error || 'Unknown error'));
-            console.error(data.details || '');
-        }
-    } catch (error) {
-        alert('Request failed: ' + error.message);
-        console.error(error);
+    function toLatex(expr) {
+      try {
+        return math.parse(expr).toTex({ parenthesis: 'keep' });
+      } catch {
+        return 'Invalid';
+      }
     }
-});
-</script>
+
+    function updateLatex() {
+      const uExpr = document.getElementById('uInput').value;
+      const vExpr = document.getElementById('vInput').value;
+
+      document.getElementById('uLatex').innerHTML = `\\( u(x, y) = ${toLatex(uExpr)} \\)`;
+      document.getElementById('vLatex').innerHTML = `\\( v(x, y) = ${toLatex(vExpr)} \\)`;
+      MathJax.typeset();
+    }
+
+    function compileExpressions() {
+      try {
+        uCompiled = math.compile(document.getElementById('uInput').value);
+        vCompiled = math.compile(document.getElementById('vInput').value);
+        return true;
+      } catch (err) {
+        alert("Invalid math expression.");
+        return false;
+      }
+    }
+
+    function evaluate(expr, scope) {
+      try {
+        return expr.evaluate(scope);
+      } catch {
+        return 0;
+      }
+    }
+
+    function plotStreamlines() {
+      if (!compileExpressions()) return;
+
+      const xMin = -5, xMax = 5, yMin = -5, yMax = 5;
+      const density = 40;
+      const stepSize = 0.05;
+      const steps = 80;
+
+      const traces = [];
+      const colorScale = d3.scaleSequential(d3.interpolateViridis).domain([0, 2]);
+
+      for (let i = 0; i < density; i++) {
+        for (let j = 0; j < density; j++) {
+          let x = xMin + (xMax - xMin) * i / (density - 1);
+          let y = yMin + (yMax - yMin) * j / (density - 1);
+
+          const streamlineX = [x];
+          const streamlineY = [y];
+          const magnitudes = [];
+
+          for (let s = 0; s < steps; s++) {
+            const scope = { x, y };
+            const u = evaluate(uCompiled, scope);
+            const v = evaluate(vCompiled, scope);
+            const mag = Math.sqrt(u * u + v * v) + 1e-8;
+
+            magnitudes.push(mag);
+
+            x += (u / mag) * stepSize;
+            y += (v / mag) * stepSize;
+
+            if (x < xMin || x > xMax || y < yMin || y > yMax) break;
+
+            streamlineX.push(x);
+            streamlineY.push(y);
+          }
+
+          if (streamlineX.length > 1) {
+            const avgMag = magnitudes.reduce((a, b) => a + b, 0) / magnitudes.length;
+
+            traces.push({
+              type: 'scatter', // 'scatter' works better for download
+              mode: 'lines',
+              line: {
+                width: 2,
+                shape: 'spline',
+                simplify: false,
+                color: colorScale(avgMag)
+              },
+              x: streamlineX,
+              y: streamlineY,
+              hoverinfo: 'none',
+              showlegend: false
+            });
+          }
+        }
+      }
+
+      Plotly.newPlot('plot', traces, {
+        xaxis: { range: [xMin, xMax], visible: false },
+        yaxis: { range: [yMin, yMax], visible: false },
+        paper_bgcolor: 'black',
+        plot_bgcolor: 'black',
+        margin: { l: 0, r: 0, t: 0, b: 0 },
+        showlegend: false,
+        dragmode: false,
+        width: 6000,      // big internal render size
+        height: 4000
+      }, {
+        staticPlot: true
+      });
+    }
+
+    function downloadJPEG() {
+      Plotly.downloadImage('plot', {
+        format: 'jpeg',
+        width: 6000,
+        height: 4000,
+        filename: 'vector_field_streamlines_art'
+      });
+    }
+
+    // Initial setup
+    updateLatex();
+    plotStreamlines();
+  </script>
 
 </body>
 </html>
