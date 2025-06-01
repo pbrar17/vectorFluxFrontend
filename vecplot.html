@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Vector Field Streamlines</title>
+
+  <!-- Libraries -->
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.1/math.min.js"></script>
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script
+    id="MathJax-script"
+    async
+    src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+  ></script>
+
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      background: black;
+      color: white;
+    }
+
+    nav {
+      background: #000;
+      padding: 10px;
+    }
+
+    nav a {
+      color: white;
+      margin: 0 15px;
+      text-decoration: none;
+      font-weight: bold;
+    }
+
+    nav a.active {
+      text-decoration: underline;
+    }
+
+    .container {
+      padding: 20px;
+    }
+
+    input,
+    button {
+      padding: 10px;
+      margin: 5px;
+      font-size: 16px;
+      background: #222;
+      color: white;
+      border: 1px solid #555;
+    }
+
+    #plot {
+      width: 100%;
+      max-width: 900px; /* Responsive max width */
+      height: auto;
+      aspect-ratio: 3 / 2;
+      margin-top: 20px;
+    }
+
+    .latex-preview {
+      margin-left: 5px;
+      font-size: 18px;
+      color: #ccc;
+    }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="index.html">Derivative Calculator</a>
+    <a href="3dplot.html">3D Plotter</a>
+    <a href="vectorfield3dplotter.html">Vector Field Plotter</a>
+    <a href="statisticalsolver.html">Statistical Solver</a>
+    <a href="vecplot.html" class="active">VecPlot</a>
+  </nav>
+
+  <div class="container">
+    <h2>Interactive Vector Field Streamline Visualizer</h2>
+
+    <label>u(x, y) = </label>
+    <input
+      id="uInput"
+      value="sin(y)"
+      size="40"
+      oninput="updateLatex()"
+      autocomplete="off"
+    />
+    <span class="latex-preview" id="uLatex"></span>
+    <br />
+    <label>v(x, y) = </label>
+    <input
+      id="vInput"
+      value="cos(x)"
+      size="40"
+      oninput="updateLatex()"
+      autocomplete="off"
+    />
+    <span class="latex-preview" id="vLatex"></span>
+    <br />
+    <button onclick="plotStreamlines()">Plot Streamlines</button>
+    <button onclick="downloadJPEG()">Download JPEG</button>
+
+    <div id="plot"></div>
+  </div>
+
+  <script>
+    let uCompiled, vCompiled;
+
+    function toLatex(expr) {
+      try {
+        return math.parse(expr).toTex({ parenthesis: "keep" });
+      } catch {
+        return "Invalid";
+      }
+    }
+
+    function updateLatex() {
+      const uExpr = document.getElementById("uInput").value;
+      const vExpr = document.getElementById("vInput").value;
+
+      document.getElementById("uLatex").innerHTML = `\\( u(x, y) = ${toLatex(
+        uExpr
+      )} \\)`;
+      document.getElementById("vLatex").innerHTML = `\\( v(x, y) = ${toLatex(
+        vExpr
+      )} \\)`;
+      MathJax.typeset();
+    }
+
+    function compileExpressions() {
+      try {
+        uCompiled = math.compile(document.getElementById("uInput").value);
+        vCompiled = math.compile(document.getElementById("vInput").value);
+        return true;
+      } catch (err) {
+        alert("Invalid math expression.");
+        return false;
+      }
+    }
+
+    function evaluate(expr, scope) {
+      try {
+        return expr.evaluate(scope);
+      } catch {
+        return 0;
+      }
+    }
+
+    function plotStreamlines() {
+      if (!compileExpressions()) return;
+
+      const xMin = -5,
+        xMax = 5,
+        yMin = -5,
+        yMax = 5;
+      const density = 40;
+      const stepSize = 0.05;
+      const steps = 80;
+
+      const traces = [];
+      const colorScale = d3.scaleSequential(d3.interpolateViridis).domain([0, 2]);
+
+      for (let i = 0; i < density; i++) {
+        for (let j = 0; j < density; j++) {
+          let x = xMin + ((xMax - xMin) * i) / (density - 1);
+          let y = yMin + ((yMax - yMin) * j) / (density - 1);
+
+          const streamlineX = [x];
+          const streamlineY = [y];
+          const magnitudes = [];
+
+          for (let s = 0; s < steps; s++) {
+            const scope = { x, y };
+            const u = evaluate(uCompiled, scope);
+            const v = evaluate(vCompiled, scope);
+            const mag = Math.sqrt(u * u + v * v) + 1e-8;
+
+            magnitudes.push(mag);
+
+            x += (u / mag) * stepSize;
+            y += (v / mag) * stepSize;
+
+            if (x < xMin || x > xMax || y < yMin || y > yMax) break;
+
+            streamlineX.push(x);
+            streamlineY.push(y);
+          }
+
+          if (streamlineX.length > 1) {
+            const avgMag = magnitudes.reduce((a, b) => a + b, 0) / magnitudes.length;
+
+            traces.push({
+              type: "scatter",
+              mode: "lines",
+              line: {
+                width: 2,
+                shape: "spline",
+                simplify: false,
+                color: colorScale(avgMag),
+              },
+              x: streamlineX,
+              y: streamlineY,
+              hoverinfo: "none",
+              showlegend: false,
+            });
+          }
+        }
+      }
+
+      Plotly.newPlot(
+        "plot",
+        traces,
+        {
+          xaxis: { range: [xMin, xMax], visible: false },
+          yaxis: { range: [yMin, yMax], visible: false },
+          paper_bgcolor: "black",
+          plot_bgcolor: "black",
+          margin: { l: 0, r: 0, t: 0, b: 0 },
+          showlegend: false,
+          dragmode: false,
+          width: 900, // display width on page
+          height: 600, // display height on page
+        },
+        {
+          staticPlot: true,
+        }
+      );
+    }
+
+    function downloadJPEG() {
+      Plotly.downloadImage("plot", {
+        format: "jpeg",
+        width: 6000, // high res download width
+        height: 4000, // high res download height
+        filename: "vector_field_streamlines_art",
+      });
+    }
+
+    // Initial setup
+    updateLatex();
+    plotStreamlines();
+  </script>
+</body>
+</html>
