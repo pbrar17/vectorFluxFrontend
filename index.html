@@ -79,22 +79,22 @@
       background: #0056b3;
     }
 
-   #plot-wrapper {
-  width: 1100px;
-  height: 700px;
-  overflow: hidden;
-  margin: 20px auto;
-  border: 1px solid #444;
-  background: black;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
+    #plot-wrapper {
+      width: 1100px;
+      height: 700px;
+      overflow: hidden;
+      margin: 20px auto;
+      border: 1px solid #444;
+      background: black;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
 
-#plot {
-  width: 1100px;
-  height: 700px;
-}
+    #plot {
+      width: 1100px;
+      height: 700px;
+    }
 
     .latex-preview {
       margin-left: 10px;
@@ -285,18 +285,14 @@
 
           if (streamlineX.length > 1) {
             const avgMag = magnitudes.reduce((a, b) => a + b, 0) / magnitudes.length;
-
             traces.push({
-              type: 'scatter',
-              mode: 'lines',
-              line: {
-                width: 2,
-                shape: 'spline',
-                simplify: false,
-                color: colorScale(avgMag)
-              },
               x: streamlineX,
               y: streamlineY,
+              mode: 'lines',
+              line: {
+                color: colorScale(avgMag),
+                width: 1.5
+              },
               hoverinfo: 'none',
               showlegend: false
             });
@@ -304,32 +300,45 @@
         }
       }
 
-      Plotly.newPlot('plot', traces, {
-        xaxis: { range: [xMin, xMax], visible: false },
-        yaxis: { range: [yMin, yMax], visible: false },
+      const layout = {
+        xaxis: {
+          range: [xMin, xMax],
+          zeroline: false,
+          showgrid: false,
+          showline: false,
+          ticks: '',
+          showticklabels: false,
+          fixedrange: true
+        },
+        yaxis: {
+          scaleanchor: "x",
+          scaleratio: 1,
+          range: [yMin, yMax],
+          zeroline: false,
+          showgrid: false,
+          showline: false,
+          ticks: '',
+          showticklabels: false,
+          fixedrange: true
+        },
+        margin: { l: 0, r: 0, t: 0, b: 0 },
         paper_bgcolor: 'black',
         plot_bgcolor: 'black',
-        margin: { l: 0, r: 0, t: 0, b: 0 },
-        showlegend: false,
-        dragmode: false,
-        width: 600,
-        height: 400
-      }, {
-        staticPlot: true
-      });
+        width: 1100,
+        height: 700
+      };
+
+      Plotly.newPlot('plot', traces, layout, { displayModeBar: false });
     }
 
     function downloadJPEG() {
-      Plotly.downloadImage('plot', {
-        format: 'jpeg',
-        width: 6000,
-        height: 4000,
-        filename: 'vector_field_streamlines_art'
-      });
+      Plotly.downloadImage('plot', {format: 'jpeg', width: 1100, height: 700, filename: 'vector_field_streamlines'});
     }
 
-    updateLatex();
-    plotStreamlines();
+    window.onload = () => {
+      updateLatex();
+      plotStreamlines();
+    };
   </script>
 </body>
 </html>
