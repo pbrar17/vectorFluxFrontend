@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>VectorFlux</title>
+  <title>Vector Field Streamlines</title>
 
   <!-- Libraries -->
   <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
@@ -47,27 +47,8 @@
 
     .container {
       padding: 20px;
-      max-width: 1200px;
+      max-width: 1400px; /* match new plot width */
       margin: 0 auto;
-    }
-
-    /* Mesmerizing gradient title */
-    .mesmerizing-title {
-      font-size: 48px;
-      font-weight: bold;
-      text-align: center;
-      margin-bottom: 20px;
-      background: linear-gradient(270deg, #ff00cc, #3333ff, #00ffff, #ff00cc);
-      background-size: 800% 800%;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      animation: gradientShift 15s ease infinite;
-    }
-
-    @keyframes gradientShift {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
     }
 
     label {
@@ -99,8 +80,8 @@
     }
 
     #plot-wrapper {
-      width: 1080px;
-      height: 720px;
+      width: 1400px;
+      height: 600px;
       overflow: hidden;
       margin: 20px auto;
       border: 1px solid #444;
@@ -110,9 +91,10 @@
       align-items: center;
     }
 
+    /* Make plot fill the entire wrapper */
     #plot {
-      width: 1080px;
-      height: 720px;
+      width: 100%;
+      height: 100%;
     }
 
     .latex-preview {
@@ -144,18 +126,14 @@
 </head>
 <body>
 
- <nav>
-            <!-- <a href="index.html">Derivative Calculator</a> -->
-            <a href="index.html" class="active">VecPlot</a>
-            <a href="3dplot.html">3D Plotter</a>
-            <a href="vectorfield3dplotter.html">Vector Field Plotter</a>
-            <a href="statisticalsolver.html">Statistical Solver</a>
-            
-        </nav>
+  <nav>
+    <a href="3dplot.html">3D Plotter</a>
+    <a href="vectorfield3dplotter.html">Vector Field Plotter</a>
+    <a href="statisticalsolver.html">Statistical Solver</a>
+    <a href="index.html" class="active">VecPlot</a>
+  </nav>
 
   <div class="container">
-    <h1 class="mesmerizing-title">VectorFlux</h1>
-
     <h2>Interactive Vector Field Streamline Visualizer</h2>
 
     <div>
@@ -290,85 +268,98 @@
           const magnitudes = [];
 
           for (let s = 0; s < steps; s++) {
-            const uVal = evaluate(uCompiled, { x: x, y: y });
-            const vVal = evaluate(vCompiled, { x: x, y: y });
-            const mag = Math.sqrt(uVal * uVal + vVal * vVal);
-            if (mag === 0 || isNaN(mag)) break;
+            const scope = { x, y };
+            const u = evaluate(uCompiled, scope);
+            const v = evaluate(vCompiled, scope);
+            const mag = Math.sqrt(u * u + v * v) + 1e-10;
+
+            if (mag < 1e-5) break;
+
             magnitudes.push(mag);
 
-            // Euler integration step forward
-            x += (uVal / mag) * stepSize;
-            y += (vVal / mag) * stepSize;
+            // Euler integration for next point (simple forward step)
+            x += (u / mag) * stepSize;
+            y += (v / mag) * stepSize;
 
+            // Stop if out of bounds
             if (x < xMin || x > xMax || y < yMin || y > yMax) break;
 
             streamlineX.push(x);
             streamlineY.push(y);
           }
 
-          if (streamlineX.length > 1) {
-            // Average magnitude for coloring
-            const avgMag = magnitudes.reduce((a,b)=>a+b,0)/magnitudes.length;
-            traces.push({
-              x: streamlineX,
-              y: streamlineY,
-              mode: 'lines',
-              line: {
-                color: colorScale(avgMag),
-                width: 1.5
-              },
-              hoverinfo: 'none'
-            });
-          }
+          // Compute average magnitude for coloring streamline
+          const avgMag = magnitudes.reduce((a, b) => a + b, 0) / (magnitudes.length || 1);
+          const color = colorScale(avgMag);
+
+          traces.push({
+            x: streamlineX,
+            y: streamlineY,
+            mode: 'lines',
+            line: { color: color, width: 1.8 },
+            hoverinfo: 'none',
+            showlegend: false
+          });
         }
       }
 
-     const layout = {
-  paper_bgcolor: 'black',
-  plot_bgcolor: 'black',
-  xaxis: {
-    range: [xMin, xMax],
-    visible: false,     // hide axis line, ticks, labels
-    zeroline: false,
-    showgrid: false,
-  },
-  yaxis: {
-    range: [yMin, yMax],
-    scaleanchor: 'x',
-    visible: false,     // hide axis line, ticks, labels
-    zeroline: false,
-    showgrid: false,
-  },
-  margin: { t: 0, b: 0, l: 0, r: 0 }, // no margin/padding
-  // Remove legend, hover, drag modes to keep clean
-  showlegend: false,
-  hovermode: false,
-  dragmode: false,
-  // Disable axis labels and padding:
-  autosize: false,
-  width: 1920,
-  height: 1080
-};
+      const layout = {
+        xaxis: {
+          range: [xMin, xMax],
+          zeroline: false,
+          showgrid: false,
+          visible: true,
+          showline: true,
+          linecolor: '#888',
+          mirror: 'ticks',
+          tickfont: { color: 'white' },
+          gridcolor: '#333'
+        },
+        yaxis: {
+          range: [yMin, yMax],
+          scaleanchor: 'x',
+          scaleratio: 1,
+          zeroline: false,
+          showgrid: false,
+          visible: true,
+          showline: true,
+          linecolor: '#888',
+          mirror: 'ticks',
+          tickfont: { color: 'white' },
+          gridcolor: '#333'
+        },
+        margin: { t: 20, b: 40, l: 60, r: 20 },
+        plot_bgcolor: 'black',
+        paper_bgcolor: 'black',
+        dragmode: 'pan',
+        hovermode: false,
+        width: 1400,
+        height: 600,
+      };
 
-
-      Plotly.newPlot('plot', traces, layout, {responsive: true, staticPlot: false});
+      Plotly.newPlot('plot', traces, layout, {displayModeBar: false, responsive: true});
     }
 
     function downloadJPEG() {
-      Plotly.toImage('plot', {format: 'jpeg', width: 6000, height: 4000})
-        .then(function(dataUrl) {
-          const link = document.createElement('a');
-          link.href = dataUrl;
-          link.download = 'vectorfield_streamlines.jpeg';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        });
+      Plotly.toImage(document.getElementById('plot'), {format: 'jpeg', width: 1400, height: 600})
+        .then(function (dataUrl) {
+          const a = document.createElement('a');
+          a.href = dataUrl;
+          a.download = 'vectorfield_streamlines.jpg';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+        })
+        .catch(err => alert('Error generating image: ' + err));
     }
 
-    // Initialize preview on load
+    // Initialize LaTeX previews
     updateLatex();
-    plotStreamlines();
+
+    // Initial plot
+    window.onload = () => {
+      plotStreamlines();
+    };
   </script>
 </body>
 </html>
