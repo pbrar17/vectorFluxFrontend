@@ -319,14 +319,24 @@
       });
     }
 
-  function downloadJPEG() {
-  Plotly.downloadImage('plot', {
-    format: 'jpeg',
-    width: 6000,
-    height: 4000,
-    filename: 'vector_field_streamlines_art.jpg'  // <--- Add .jpg here
-  });
+ function downloadJPEG() {
+  Plotly.toImage('plot', { format: 'jpeg', width: 6000, height: 4000 })
+    .then(function(dataUrl) {
+      // Create a link element
+      const link = document.createElement('a');
+      link.href = dataUrl;
+      link.download = 'vector_field_streamlines_art.jpg';  // explicitly .jpg
+
+      // Append link, click it, then remove it
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    })
+    .catch(function(error) {
+      alert('Error generating image for download: ' + error);
+    });
 }
+
 
 
 
