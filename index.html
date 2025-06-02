@@ -79,14 +79,14 @@
       background: #0056b3;
     }
 
-    /* Updated plot container & plot styling for responsive and fitting layout */
+    /* Updated plot container to fixed 1920x1080 */
     #plot-wrapper {
-      width: 100%;
-      max-width: 960px;       /* You can increase this for bigger on-screen */
-      aspect-ratio: 16 / 9;   /* Keep 16:9 ratio */
+      width: 1920px;
+      height: 1080px;
       margin: 20px auto;
       border: 1px solid #444;
       background: black;
+      overflow: hidden;
     }
 
     #plot {
@@ -286,13 +286,9 @@
 
           if (streamlineX.length < 2) continue;
 
-          // Smooth color gradient along streamline by magnitude
           const maxMag = Math.max(...magnitudes);
           const minMag = Math.min(...magnitudes);
-          const colors = magnitudes.map(m => colorScale((m - minMag) / (maxMag - minMag + 1e-12)));
 
-          // Approximate color by averaging colors along streamline for line color
-          // Plotly only supports single line color per trace, so pick median magnitude
           const medianMag = magnitudes[Math.floor(magnitudes.length / 2)];
           const lineColor = colorScale((medianMag - minMag) / (maxMag - minMag + 1e-12));
 
@@ -312,31 +308,46 @@
         }
       }
 
-      Plotly.newPlot('plot', traces, {
-        xaxis: { range: [xMin, xMax], visible: false },
-        yaxis: { range: [yMin, yMax], visible: false, scaleanchor: 'x' },
+      const layout = {
         paper_bgcolor: 'black',
         plot_bgcolor: 'black',
-        margin: { l: 0, r: 0, b: 0, t: 0 },
-        width: 960,
-        height: 540
-      }, {
-        staticPlot: true,
-        displayModeBar: false
-      });
+        xaxis: {
+          range: [xMin, xMax],
+          zeroline: false,
+          showgrid: false,
+          visible: false,
+          scaleanchor: 'y',
+          scaleratio: 1
+        },
+        yaxis: {
+          range: [yMin, yMax],
+          zeroline: false,
+          showgrid: false,
+          visible: false,
+          scaleanchor: 'x',
+          scaleratio: 1
+        },
+        width: 1920,
+        height: 1080,
+        margin: { l: 0, r: 0, t: 0, b: 0 },
+        hovermode: false
+      };
+
+      Plotly.newPlot('plot', traces, layout, { staticPlot: true, displayModeBar: false });
     }
 
     function downloadJPEG() {
       Plotly.downloadImage('plot', {
         format: 'jpeg',
+        filename: 'vector_field_streamlines',
         width: 1920,
         height: 1080,
-        filename: 'vectorfield_streamlines'
+        scale: 1
       });
     }
 
-    // Initialize latex preview
     updateLatex();
+    plotStreamlines();
   </script>
 </body>
 </html>
