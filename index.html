@@ -10,7 +10,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.1/math.min.js"></script>
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
-  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+  <script id="MathJax-script" async
+    src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 
   <style>
     body {
@@ -50,6 +51,7 @@
       margin: 0 auto;
     }
 
+    /* Mesmerizing gradient title */
     .mesmerizing-title {
       font-size: 48px;
       font-weight: bold;
@@ -97,8 +99,8 @@
     }
 
     #plot-wrapper {
-      width: 1200px;
-      height: 800px;
+      width: 1920px;
+      height: 1080px;
       overflow: hidden;
       margin: 20px auto;
       border: 1px solid #444;
@@ -109,8 +111,8 @@
     }
 
     #plot {
-      width: 1200px;
-      height: 800px;
+      width: 1920px;
+      height: 1080px;
     }
 
     .latex-preview {
@@ -142,34 +144,49 @@
 </head>
 <body>
 
-  <nav>
-    <a href="index.html" class="active">VecPlot</a>
-    <a href="3dplot.html">3D Plotter</a>
-    <a href="vectorfield3dplotter.html">Vector Field Plotter</a>
-    <a href="statisticalsolver.html">Statistical Solver</a>
-  </nav>
+ <nav>
+            <!-- <a href="index.html">Derivative Calculator</a> -->
+            <a href="index.html" class="active">VecPlot</a>
+            <a href="3dplot.html">3D Plotter</a>
+            <a href="vectorfield3dplotter.html">Vector Field Plotter</a>
+            <a href="statisticalsolver.html">Statistical Solver</a>
+            
+        </nav>
 
   <div class="container">
     <h1 class="mesmerizing-title">VectorFlux</h1>
+
     <h2>Interactive Vector Field Streamline Visualizer</h2>
 
     <div>
       <label for="uInput">u(x, y) = </label>
-      <input id="uInput" value="sin(y)" oninput="updateLatex()" />
+      <input id="uInput" value="sin(y)" size="40" oninput="updateLatex()" autocomplete="off" spellcheck="false" />
       <span class="latex-preview" id="uLatex"></span>
     </div>
 
     <div>
       <label for="vInput">v(x, y) = </label>
-      <input id="vInput" value="cos(x)" oninput="updateLatex()" />
+      <input id="vInput" value="cos(x)" size="40" oninput="updateLatex()" autocomplete="off" spellcheck="false" />
       <span class="latex-preview" id="vLatex"></span>
     </div>
 
     <div class="range-inputs">
-      <div><label for="xMin">xMin</label><br><input id="xMin" type="number" value="-5"></div>
-      <div><label for="xMax">xMax</label><br><input id="xMax" type="number" value="5"></div>
-      <div><label for="yMin">yMin</label><br><input id="yMin" type="number" value="-5"></div>
-      <div><label for="yMax">yMax</label><br><input id="yMax" type="number" value="5"></div>
+      <div>
+        <label for="xMin">xMin</label><br>
+        <input id="xMin" type="number" value="-5">
+      </div>
+      <div>
+        <label for="xMax">xMax</label><br>
+        <input id="xMax" type="number" value="5">
+      </div>
+      <div>
+        <label for="yMin">yMin</label><br>
+        <input id="yMin" type="number" value="-5">
+      </div>
+      <div>
+        <label for="yMax">yMax</label><br>
+        <input id="yMax" type="number" value="5">
+      </div>
     </div>
 
     <div>
@@ -187,8 +204,8 @@
     </div>
 
     <div>
-      <button onclick="plotStreamlines()">Plot Streamlines</button>
-      <button onclick="downloadJPEG()">Download JPEG</button>
+      <button id="plotBtn" onclick="plotStreamlines()">Plot Streamlines</button>
+      <button id="downloadBtn" onclick="downloadJPEG()">Download JPEG</button>
     </div>
 
     <div id="plot-wrapper">
@@ -210,6 +227,7 @@
     function updateLatex() {
       const uExpr = document.getElementById('uInput').value.trim();
       const vExpr = document.getElementById('vInput').value.trim();
+
       document.getElementById('uLatex').innerHTML = `\\( u(x, y) = ${toLatex(uExpr)} \\)`;
       document.getElementById('vLatex').innerHTML = `\\( v(x, y) = ${toLatex(vExpr)} \\)`;
       MathJax.typesetPromise();
@@ -220,7 +238,7 @@
         uCompiled = math.compile(document.getElementById('uInput').value);
         vCompiled = math.compile(document.getElementById('vInput').value);
         return true;
-      } catch {
+      } catch (err) {
         alert("Invalid math expression. Please check your input.");
         return false;
       }
@@ -259,6 +277,7 @@
       const density = 40;
       const stepSize = 0.05;
       const steps = 80;
+
       const traces = [];
 
       for (let i = 0; i < density; i++) {
@@ -271,20 +290,25 @@
           const magnitudes = [];
 
           for (let s = 0; s < steps; s++) {
-            const uVal = evaluate(uCompiled, { x, y });
-            const vVal = evaluate(vCompiled, { x, y });
+            const uVal = evaluate(uCompiled, { x: x, y: y });
+            const vVal = evaluate(vCompiled, { x: x, y: y });
             const mag = Math.sqrt(uVal * uVal + vVal * vVal);
             if (mag === 0 || isNaN(mag)) break;
             magnitudes.push(mag);
+
+            // Euler integration step forward
             x += (uVal / mag) * stepSize;
             y += (vVal / mag) * stepSize;
+
             if (x < xMin || x > xMax || y < yMin || y > yMax) break;
+
             streamlineX.push(x);
             streamlineY.push(y);
           }
 
           if (streamlineX.length > 1) {
-            const avgMag = magnitudes.reduce((a, b) => a + b, 0) / magnitudes.length;
+            // Average magnitude for coloring
+            const avgMag = magnitudes.reduce((a,b)=>a+b,0)/magnitudes.length;
             traces.push({
               x: streamlineX,
               y: streamlineY,
@@ -300,25 +324,45 @@
       }
 
       const layout = {
-        width: 1200,
-        height: 800,
-        margin: { t: 30, b: 30, l: 30, r: 30 },
-        plot_bgcolor: 'black',
         paper_bgcolor: 'black',
-        xaxis: { range: [xMin, xMax], showgrid: false, zeroline: false, color: 'white' },
-        yaxis: { range: [yMin, yMax], showgrid: false, zeroline: false, color: 'white' }
+        plot_bgcolor: 'black',
+        xaxis: {
+          range: [xMin, xMax],
+          zeroline: false,
+          showgrid: false,
+          color: 'white'
+        },
+        yaxis: {
+          range: [yMin, yMax],
+          scaleanchor: 'x',
+          zeroline: false,
+          showgrid: false,
+          color: 'white'
+        },
+        margin: { t: 20, b: 50, l: 50, r: 20 },
+        showlegend: false,
+        hovermode: false,
+        dragmode: 'zoom'
       };
 
-      Plotly.newPlot("plot", traces, layout, { staticPlot: false, displayModeBar: false });
+      Plotly.newPlot('plot', traces, layout, {responsive: true, staticPlot: false});
     }
 
     function downloadJPEG() {
-      Plotly.downloadImage("plot", { format: "jpeg", filename: "vectorflux_streamlines" });
+      Plotly.toImage('plot', {format: 'jpeg', width: 1920, height: 1080})
+        .then(function(dataUrl) {
+          const link = document.createElement('a');
+          link.href = dataUrl;
+          link.download = 'vectorfield_streamlines.jpeg';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        });
     }
 
-    // Initialize LaTeX preview
+    // Initialize preview on load
     updateLatex();
+    plotStreamlines();
   </script>
-
 </body>
 </html>
