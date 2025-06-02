@@ -150,19 +150,19 @@
     <div class="range-inputs">
       <div>
         <label for="xMin">xMin</label><br>
-        <input id="xMin" type="number" value="-5">
+        <input id="xMin" type="number" value="-5" step="0.1">
       </div>
       <div>
         <label for="xMax">xMax</label><br>
-        <input id="xMax" type="number" value="5">
+        <input id="xMax" type="number" value="5" step="0.1">
       </div>
       <div>
         <label for="yMin">yMin</label><br>
-        <input id="yMin" type="number" value="-5" disabled>
+        <input id="yMin" type="number" value="-2.812" disabled>
       </div>
       <div>
         <label for="yMax">yMax</label><br>
-        <input id="yMax" type="number" value="5" disabled>
+        <input id="yMax" type="number" value="2.812" disabled>
       </div>
     </div>
 
@@ -327,37 +327,70 @@
         },
         yaxis: {
           range: [yMin, yMax],
+          scaleanchor: "x",
+          scaleratio: 1,
           zeroline: false,
           showgrid: false,
           showticklabels: false,
           fixedrange: true,
-          scaleanchor: 'x' // Keep equal scaling
-        }
+        },
       };
 
-      Plotly.newPlot('plot', traces, layout, { staticPlot: true, displayModeBar: false });
-
-      // Update the download button (optional)
-      document.getElementById('downloadBtn').disabled = false;
+      Plotly.newPlot("plot", traces, layout, {displayModeBar: false});
     }
 
-    // Download as JPEG
-    async function downloadJPEG() {
-      const plotDiv = document.getElementById('plot');
-      const jpegUrl = await Plotly.toImage(plotDiv, { format: 'jpeg', width: 1920, height: 1080 });
-      const a = document.createElement('a');
-      a.href = jpegUrl;
-      a.download = 'vector_field_streamlines.jpg';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+    function downloadJPEG() {
+      Plotly.toImage('plot', {format: 'jpeg', width: 1920, height: 1080})
+        .then(function (dataUrl) {
+          const a = document.createElement('a');
+          a.href = dataUrl;
+          a.download = 'vector_field_streamlines.jpg';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        });
     }
 
-    // Initial LaTeX rendering and plot on load
-    window.onload = () => {
-      updateLatex();
+    // Initialize the LaTeX previews
+    updateLatex();
+
+    // Initial plot
+    plotStreamlines();
+
+    // Optional: Re-plot if user changes xMin or xMax to update y-range automatically
+    document.getElementById("xMin").addEventListener("input", () => {
+      // Constrain inputs and re-plot
+      let xMinVal = parseFloat(document.getElementById("xMin").value);
+      let xMaxVal = parseFloat(document.getElementById("xMax").value);
+      if (xMinVal >= xMaxVal) {
+        xMaxVal = xMinVal + 0.1;
+        document.getElementById("xMax").value = xMaxVal.toFixed(3);
+      }
       plotStreamlines();
-    };
+    });
+
+    document.getElementById("xMax").addEventListener("input", () => {
+      let xMinVal = parseFloat(document.getElementById("xMin").value);
+      let xMaxVal = parseFloat(document.getElementById("xMax").value);
+      if (xMaxVal <= xMinVal) {
+        xMinVal = xMaxVal - 0.1;
+        document.getElementById("xMin").value = xMinVal.toFixed(3);
+      }
+      plotStreamlines();
+    });
+
+    // Update LaTeX previews on input
+    document.getElementById("uInput").addEventListener("input", () => {
+      updateLatex();
+    });
+    document.getElementById("vInput").addEventListener("input", () => {
+      updateLatex();
+    });
+
+    // Replot on color scheme change
+    document.getElementById("colorScheme").addEventListener("change", () => {
+      plotStreamlines();
+    });
   </script>
 </body>
 </html>
