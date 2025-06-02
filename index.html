@@ -20,13 +20,11 @@
       background: black;
       color: white;
     }
-
     nav {
       background: #000;
       padding: 10px;
       text-align: center;
     }
-
     nav a {
       color: white;
       margin: 0 15px;
@@ -35,26 +33,21 @@
       font-size: 18px;
       transition: color 0.3s;
     }
-
     nav a:hover {
       color: #66ccff;
     }
-
     nav a.active {
       text-decoration: underline;
       color: #66ccff;
     }
-
     .container {
       padding: 20px;
       max-width: 1200px;
       margin: 0 auto;
     }
-
     label {
       font-weight: bold;
     }
-
     input, button, select {
       padding: 10px;
       margin: 5px 10px 15px 0;
@@ -67,18 +60,15 @@
       max-width: 100%;
       box-sizing: border-box;
     }
-
     button {
       cursor: pointer;
       border: none;
       background: #007bff;
       transition: background 0.3s;
     }
-
     button:hover {
       background: #0056b3;
     }
-
     #plot-wrapper {
       width: 1920px;
       height: 1080px;
@@ -90,12 +80,10 @@
       justify-content: center;
       align-items: center;
     }
-
     #plot {
       width: 1920px;
       height: 1080px;
     }
-
     .latex-preview {
       margin-left: 10px;
       font-size: 20px;
@@ -105,19 +93,16 @@
       min-width: 150px;
       font-family: "Latin Modern Math", "STIX Math", "Cambria Math", serif;
     }
-
     .range-inputs {
       display: flex;
       flex-wrap: wrap;
       gap: 15px;
       margin-bottom: 10px;
     }
-
     .range-inputs label {
       width: auto;
       margin-right: 5px;
     }
-
     .range-inputs input {
       width: 120px;
     }
@@ -297,40 +282,46 @@
               },
               x: streamlineX,
               y: streamlineY,
-              hoverinfo: 'none',
-              showlegend: false
+              hoverinfo: 'skip'
             });
           }
         }
       }
 
-      Plotly.newPlot('plot', traces, {
-        xaxis: { range: [xMin, xMax], visible: false },
-        yaxis: { range: [yMin, yMax], visible: false },
-        paper_bgcolor: 'black',
+      const layout = {
         plot_bgcolor: 'black',
-        margin: { l: 0, r: 0, t: 0, b: 0 },
+        paper_bgcolor: 'black',
+        xaxis: { showgrid: false, zeroline: false, showticklabels: false, range: [xMin, xMax] },
+        yaxis: { showgrid: false, zeroline: false, showticklabels: false, scaleanchor: 'x', range: [yMin, yMax] },
+        margin: { t: 0, r: 0, b: 0, l: 0 },
         showlegend: false,
-        dragmode: false,
+        hovermode: false,
         width: 1920,
         height: 1080
-      }, {
-        staticPlot: true
-      });
+      };
+
+      Plotly.newPlot('plot', traces, layout, { displayModeBar: false });
     }
 
-   function downloadJPEG() {
-  const plotDiv = document.getElementById('plot');
-  Plotly.downloadImage(plotDiv, {
-    format: 'jpeg',
-    width: 6000,
-    height: 4000,
-    filename: 'vector_field_streamlines_art'
-  });
-}
+    function downloadJPEG() {
+      const plotDiv = document.getElementById('plot');
+      Plotly.toImage(plotDiv, {format: 'jpeg', width: 1920, height: 1080, quality: 1})
+        .then(function(dataUrl) {
+          const link = document.createElement('a');
+          link.href = dataUrl;
+          link.download = 'vectorfield.jpeg';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        })
+        .catch(function(err) {
+          alert("Error generating image: " + err);
+        });
+    }
 
-
+    // Initial LaTeX render and plot on load
     updateLatex();
+    plotStreamlines();
   </script>
 </body>
 </html>
