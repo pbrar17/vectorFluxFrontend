@@ -150,19 +150,19 @@
     <div class="range-inputs">
       <div>
         <label for="xMin">xMin</label><br>
-        <input id="xMin" type="number" value="-5" step="0.1">
+        <input id="xMin" type="number" value="-5">
       </div>
       <div>
         <label for="xMax">xMax</label><br>
-        <input id="xMax" type="number" value="5" step="0.1">
+        <input id="xMax" type="number" value="5">
       </div>
       <div>
         <label for="yMin">yMin</label><br>
-        <input id="yMin" type="number" value="-2.812" disabled>
+        <input id="yMin" type="number" value="-5">
       </div>
       <div>
         <label for="yMax">yMax</label><br>
-        <input id="yMax" type="number" value="2.812" disabled>
+        <input id="yMax" type="number" value="5">
       </div>
     </div>
 
@@ -232,21 +232,10 @@
     function plotStreamlines() {
       if (!compileExpressions()) return;
 
-      // Read x range from inputs
       const xMin = parseFloat(document.getElementById("xMin").value);
       const xMax = parseFloat(document.getElementById("xMax").value);
-      const xRange = xMax - xMin;
-
-      // Calculate y range based on aspect ratio 1920 / 1080 ≈ 1.777...
-      const aspectRatio = 1920 / 1080;
-      const yRange = xRange / aspectRatio;
-      const yMin = -yRange / 2;
-      const yMax = yRange / 2;
-
-      // Update disabled yMin and yMax inputs visually to show actual values
-      document.getElementById("yMin").value = yMin.toFixed(3);
-      document.getElementById("yMax").value = yMax.toFixed(3);
-
+      const yMin = parseFloat(document.getElementById("yMin").value);
+      const yMax = parseFloat(document.getElementById("yMax").value);
       const colorName = document.getElementById("colorScheme").value;
 
       const d3Interpolators = {
@@ -288,109 +277,69 @@
             x += (u / mag) * stepSize;
             y += (v / mag) * stepSize;
 
-            // Stop if out of bounds
             if (x < xMin || x > xMax || y < yMin || y > yMax) break;
 
             streamlineX.push(x);
             streamlineY.push(y);
           }
 
-          const avgMag = magnitudes.reduce((a, b) => a + b, 0) / magnitudes.length;
-          const color = colorScale(avgMag);
+          if (streamlineX.length > 1) {
+            const avgMag = magnitudes.reduce((a, b) => a + b, 0) / magnitudes.length;
 
-          traces.push({
-            x: streamlineX,
-            y: streamlineY,
-            mode: 'lines',
-            line: {
-              color: color,
-              width: 1.5,
-            },
-            hoverinfo: 'none',
-            showlegend: false,
-          });
+            traces.push({
+              type: 'scatter',
+              mode: 'lines',
+              line: {
+                width: 0.9,
+                shape: 'spline',
+                simplify: false,
+                color: colorScale(avgMag)
+              },
+              x: streamlineX,
+              y: streamlineY,
+              hoverinfo: 'none',
+              showlegend: false
+            });
+          }
         }
       }
 
-      const layout = {
-        width: 1920,
-        height: 1080,
-        margin: { t: 0, r: 0, b: 0, l: 0 },
+      Plotly.newPlot('plot', traces, {
+        xaxis: { range: [xMin, xMax], visible: false },
+        yaxis: { range: [yMin, yMax], visible: false },
         paper_bgcolor: 'black',
         plot_bgcolor: 'black',
-        xaxis: {
-          range: [xMin, xMax],
-          zeroline: false,
-          showgrid: false,
-          showticklabels: false,
-          fixedrange: true,
-        },
-        yaxis: {
-          range: [yMin, yMax],
-          scaleanchor: "x",
-          scaleratio: 1,
-          zeroline: false,
-          showgrid: false,
-          showticklabels: false,
-          fixedrange: true,
-        },
-      };
-
-      Plotly.newPlot("plot", traces, layout, {displayModeBar: false});
+        margin: { l: 0, r: 0, t: 0, b: 0 },
+        showlegend: false,
+        dragmode: false,
+        width: 1920,
+        height: 1080
+      }, {
+        staticPlot: true
+      });
     }
 
-    function downloadJPEG() {
-      Plotly.toImage('plot', {format: 'jpeg', width: 1920, height: 1080})
-        .then(function (dataUrl) {
-          const a = document.createElement('a');
-          a.href = dataUrl;
-          a.download = 'vector_field_streamlines.jpg';
-          document.body.appendChild(a);
-          a.click();
-          a.remove();
-        });
-    }
+   function downloadJPEG() {
+  Plotly.downloadImage('plot', {
+    format: 'jpeg',
+    width: 6000,
+    height: 4000,
+    filename: 'vector_field_streamlines_art'
+  }).then(function(dataUrl) {
+    // Create a temporary link element
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = 'vector_field_streamlines_art.jpeg';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }).catch(function(err) {
+    alert('Error downloading image: ' + err);
+  });
+}
 
-    // Initialize the LaTeX previews
+
     updateLatex();
-
-    // Initial plot
-    plotStreamlines();
-
-    // Optional: Re-plot if user changes xMin or xMax to update y-range automatically
-    document.getElementById("xMin").addEventListener("input", () => {
-      // Constrain inputs and re-plot
-      let xMinVal = parseFloat(document.getElementById("xMin").value);
-      let xMaxVal = parseFloat(document.getElementById("xMax").value);
-      if (xMinVal >= xMaxVal) {
-        xMaxVal = xMinVal + 0.1;
-        document.getElementById("xMax").value = xMaxVal.toFixed(3);
-      }
-      plotStreamlines();
-    });
-
-    document.getElementById("xMax").addEventListener("input", () => {
-      let xMinVal = parseFloat(document.getElementById("xMin").value);
-      let xMaxVal = parseFloat(document.getElementById("xMax").value);
-      if (xMaxVal <= xMinVal) {
-        xMinVal = xMaxVal - 0.1;
-        document.getElementById("xMin").value = xMinVal.toFixed(3);
-      }
-      plotStreamlines();
-    });
-
-    // Update LaTeX previews on input
-    document.getElementById("uInput").addEventListener("input", () => {
-      updateLatex();
-    });
-    document.getElementById("vInput").addEventListener("input", () => {
-      updateLatex();
-    });
-
-    // Replot on color scheme change
-    document.getElementById("colorScheme").addEventListener("change", () => {
-      plotStreamlines();
-    });
   </script>
 </body>
-</html>
+</html>  
