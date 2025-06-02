@@ -144,14 +144,12 @@
 </head>
 <body>
 
- <nav>
-            <!-- <a href="index.html">Derivative Calculator</a> -->
-            <a href="index.html" class="active">VecPlot</a>
-            <a href="3dplot.html">3D Plotter</a>
-            <a href="vectorfield3dplotter.html">Vector Field Plotter</a>
-            <a href="statisticalsolver.html">Statistical Solver</a>
-            
-        </nav>
+  <nav>
+    <a href="index.html" class="active">VecPlot</a>
+    <a href="3dplot.html">3D Plotter</a>
+    <a href="vectorfield3dplotter.html">Vector Field Plotter</a>
+    <a href="statisticalsolver.html">Statistical Solver</a>
+  </nav>
 
   <div class="container">
     <h1 class="mesmerizing-title">VectorFlux</h1>
@@ -300,6 +298,7 @@
             x += (uVal / mag) * stepSize;
             y += (vVal / mag) * stepSize;
 
+            // Stop if out of bounds
             if (x < xMin || x > xMax || y < yMin || y > yMax) break;
 
             streamlineX.push(x);
@@ -307,8 +306,8 @@
           }
 
           if (streamlineX.length > 1) {
-            // Average magnitude for coloring
-            const avgMag = magnitudes.reduce((a,b)=>a+b,0)/magnitudes.length;
+            // Average magnitude for color
+            const avgMag = magnitudes.reduce((a, b) => a + b, 0) / magnitudes.length;
             traces.push({
               x: streamlineX,
               y: streamlineY,
@@ -323,52 +322,171 @@
         }
       }
 
-     const layout = {
-  paper_bgcolor: 'black',
-  plot_bgcolor: 'black',
-  xaxis: {
-    range: [xMin, xMax],
-    visible: false,     // hide axis line, ticks, labels
-    zeroline: false,
-    showgrid: false,
-  },
-  yaxis: {
-    range: [yMin, yMax],
-    scaleanchor: 'x',
-    visible: false,     // hide axis line, ticks, labels
-    zeroline: false,
-    showgrid: false,
-  },
-  margin: { t: 0, b: 0, l: 0, r: 0 }, // no margin/padding
-  // Remove legend, hover, drag modes to keep clean
-  showlegend: false,
-  hovermode: false,
-  dragmode: false,
-  // Disable axis labels and padding:
-  autosize: false,
-  width: 1920,
-  height: 1080
-};
+      const layout = {
+        autosize: false,
+        width: 1080,
+        height: 720,
+        margin: { l: 40, r: 40, b: 40, t: 40 },
+        paper_bgcolor: 'black',
+        plot_bgcolor: 'black',
+        xaxis: {
+          range: [xMin, xMax],
+          zeroline: false,
+          showgrid: false,
+          showticklabels: true,
+          color: 'white',
+          scaleanchor: 'y',
+          scaleratio: 1,
+        },
+        yaxis: {
+          range: [yMin, yMax],
+          zeroline: false,
+          showgrid: false,
+          showticklabels: true,
+          color: 'white'
+        },
+        hovermode: false,
+      };
 
-
-      Plotly.newPlot('plot', traces, layout, {responsive: true, staticPlot: false});
+      Plotly.newPlot('plot', traces, layout, { displayModeBar: false });
     }
 
-    function downloadJPEG() {
-      Plotly.toImage('plot', {format: 'jpeg', width: 6000, height: 4000})
-        .then(function(dataUrl) {
-          const link = document.createElement('a');
-          link.href = dataUrl;
-          link.download = 'vectorfield_streamlines.jpeg';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        });
-    }
-
-    // Initialize preview on load
+    // Initial rendering of latex and plot
     updateLatex();
     plotStreamlines();
+
+    async function downloadJPEG() {
+      if (!compileExpressions()) return;
+
+      const xMin = parseFloat(document.getElementById("xMin").value);
+      const xMax = parseFloat(document.getElementById("xMax").value);
+      const yMin = parseFloat(document.getElementById("yMin").value);
+      const yMax = parseFloat(document.getElementById("yMax").value);
+      const colorName = document.getElementById("colorScheme").value;
+
+      // Same color scale as plotStreamlines
+      const d3Interpolators = {
+        Viridis: d3.interpolateViridis,
+        Plasma: d3.interpolatePlasma,
+        Inferno: d3.interpolateInferno,
+        Magma: d3.interpolateMagma,
+        Cool: d3.interpolateCool,
+        Warm: d3.interpolateWarm,
+        Rainbow: d3.interpolateRainbow,
+        CubehelixDefault: d3.interpolateCubehelixDefault
+      };
+
+      const colorScale = d3.scaleSequential(d3Interpolators[colorName]).domain([0, 2]);
+
+      // Regenerate the traces exactly the same way as in plotStreamlines
+      // (Could consider DRY principle by refactoring trace generation to a function)
+      const density = 40;
+      const stepSize = 0.05;
+      const steps = 80;
+
+      const traces = [];
+
+      for (let i = 0; i < density; i++) {
+        for (let j = 0; j < density; j++) {
+          let x = xMin + (xMax - xMin) * i / (density - 1);
+          let y = yMin + (yMax - yMin) * j / (density - 1);
+
+          const streamlineX = [x];
+          const streamlineY = [y];
+          const magnitudes = [];
+
+          for (let s = 0; s < steps; s++) {
+            const uVal = evaluate(uCompiled, { x: x, y: y });
+            const vVal = evaluate(vCompiled, { x: x, y: y });
+            const mag = Math.sqrt(uVal * uVal + vVal * vVal);
+            if (mag === 0 || isNaN(mag)) break;
+            magnitudes.push(mag);
+
+            x += (uVal / mag) * stepSize;
+            y += (vVal / mag) * stepSize;
+
+            if (x < xMin || x > xMax || y < yMin || y > yMax) break;
+
+            streamlineX.push(x);
+            streamlineY.push(y);
+          }
+
+          if (streamlineX.length > 1) {
+            const avgMag = magnitudes.reduce((a, b) => a + b, 0) / magnitudes.length;
+            traces.push({
+              x: streamlineX,
+              y: streamlineY,
+              mode: 'lines',
+              line: {
+                color: colorScale(avgMag),
+                width: 1.5
+              },
+              hoverinfo: 'none'
+            });
+          }
+        }
+      }
+
+      const layout = {
+        autosize: false,
+        width: 6000,   // 6000 x 4000 for high-res export
+        height: 4000,
+        margin: { l: 80, r: 80, b: 80, t: 80 },
+        paper_bgcolor: 'black',
+        plot_bgcolor: 'black',
+        xaxis: {
+          range: [xMin, xMax],
+          zeroline: false,
+          showgrid: false,
+          showticklabels: true,
+          color: 'white',
+          scaleanchor: 'y',
+          scaleratio: 1,
+          ticks: 'outside',
+          ticklen: 15,
+          tickwidth: 2,
+          tickcolor: 'white',
+          tickfont: { size: 48 },
+        },
+        yaxis: {
+          range: [yMin, yMax],
+          zeroline: false,
+          showgrid: false,
+          showticklabels: true,
+          color: 'white',
+          ticks: 'outside',
+          ticklen: 15,
+          tickwidth: 2,
+          tickcolor: 'white',
+          tickfont: { size: 48 },
+        },
+        hovermode: false,
+      };
+
+      // Use Plotly to generate a JPEG image blob offscreen
+      try {
+        const imgData = await Plotly.toImage({
+          data: traces,
+          layout: layout,
+          config: { staticPlot: true }
+        }, {
+          format: 'jpeg',
+          width: 6000,
+          height: 4000,
+          scale: 1 // Scale 1 means exactly the given width and height
+        });
+
+        // Create a download link and click it programmatically
+        const a = document.createElement('a');
+        a.href = imgData;
+        a.download = `vectorfield_${Date.now()}.jpeg`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } catch (err) {
+        alert("Error generating image: " + err.message);
+      }
+    }
   </script>
 </body>
 </html>
