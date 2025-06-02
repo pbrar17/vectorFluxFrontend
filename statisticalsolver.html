@@ -270,202 +270,176 @@
       });
     });
 
-    // Display message in #output box
+    // Display output messages
     function showOutput(msg) {
-      const outputDiv = document.getElementById("output");
-      outputDiv.textContent = msg;
+      const out = document.getElementById("output");
+      out.textContent = msg;
     }
 
-    // Clear the stats panel
-    function clearStatsPanel() {
-      const panel = document.getElementById("stats-panel");
-      panel.style.display = "none";
-      panel.innerHTML = "";
+    // Clear output and stats panel
+    function clearOutput() {
+      showOutput("");
+      document.getElementById("stats-panel").style.display = "none";
+      document.getElementById("stats-panel").innerHTML = "";
     }
 
-    // Show stats panel with given HTML content
-    function showStatsPanel(html) {
-      const panel = document.getElementById("stats-panel");
-      panel.style.display = "block";
-      panel.innerHTML = html;
-    }
-
-    // Run linear regression and plot scatter + best fit line
+    // Linear Regression with stats
     function runRegression(x, y) {
-      clearStatsPanel();
-      if (x.length !== y.length) {
-        showOutput("X and Y must have the same number of values.");
+      clearOutput();
+      if (x.length !== y.length || x.length === 0) {
+        showOutput("X and Y must have the same number of elements and not be empty.");
         return;
       }
-      if (x.length < 2) {
-        showOutput("Need at least two data points for regression.");
-        return;
-      }
+      // Compute regression parameters: slope and intercept
+      const n = x.length;
+      const xMean = x.reduce((a,b) => a+b,0)/n;
+      const yMean = y.reduce((a,b) => a+b,0)/n;
 
-      // Compute means
-      const meanX = math.mean(x);
-      const meanY = math.mean(y);
-
-      // Calculate slope (m) and intercept (b)
-      let numerator = 0, denominator = 0;
-      for (let i = 0; i < x.length; i++) {
-        numerator += (x[i] - meanX) * (y[i] - meanY);
-        denominator += (x[i] - meanX) ** 2;
+      let numerator = 0;
+      let denominator = 0;
+      for (let i = 0; i < n; i++) {
+        numerator += (x[i] - xMean)*(y[i] - yMean);
+        denominator += (x[i] - xMean)**2;
       }
-      if (denominator === 0) {
-        showOutput("Cannot compute regression: all X values are identical.");
-        return;
-      }
-      const m = numerator / denominator;
-      const b = meanY - m * meanX;
+      const slope = numerator / denominator;
+      const intercept = yMean - slope * xMean;
 
-      // Compute R squared
-      let ssTot = 0, ssRes = 0;
-      for (let i = 0; i < y.length; i++) {
-        const yPred = m * x[i] + b;
+      // Calculate r-squared
+      let ssTot = 0;
+      let ssRes = 0;
+      for (let i = 0; i < n; i++) {
+        const yPred = slope * x[i] + intercept;
+        ssTot += (y[i] - yMean) ** 2;
         ssRes += (y[i] - yPred) ** 2;
-        ssTot += (y[i] - meanY) ** 2;
       }
-      const r2 = 1 - (ssRes / ssTot);
+      const r2 = 1 - ssRes / ssTot;
 
-      // Prepare regression line points
-      const xLine = [Math.min(...x), Math.max(...x)];
-      const yLine = xLine.map(xv => m * xv + b);
+      // Show stats panel
+      const statsDiv = document.getElementById("stats-panel");
+      statsDiv.style.display = "block";
+      statsDiv.innerHTML = `
+        <h3>Linear Regression Results</h3>
+        <table>
+          <tr><th>Slope (m)</th><td>${slope.toFixed(4)}</td></tr>
+          <tr><th>Intercept (b)</th><td>${intercept.toFixed(4)}</td></tr>
+          <tr><th>R-squared (R²)</th><td>${r2.toFixed(4)}</td></tr>
+          <tr><th>Data points</th><td>${n}</td></tr>
+        </table>
+      `;
 
-      // Prepare plot title
-      let plotTitle = document.getElementById("plot-title").value.trim();
-      if (!plotTitle) plotTitle = "Linear Regression: " + yLabel + " vs " + xLabel;
+      // Prepare data for Plotly
+      const regressionLineX = [Math.min(...x), Math.max(...x)];
+      const regressionLineY = regressionLineX.map(xi => slope * xi + intercept);
 
-      // Plot with Plotly
-      const data = [
-        {
-          x, y,
-          mode: 'markers',
-          type: 'scatter',
-          name: 'Data Points',
-          marker: { color: '#0077cc' }
-        },
-        {
-          x: xLine,
-          y: yLine,
-          mode: 'lines',
-          type: 'scatter',
-          name: `Best Fit Line (y = ${m.toFixed(3)}x + ${b.toFixed(3)})`,
-          line: { color: '#ff6600', width: 3 }
-        }
-      ];
+      const scatterTrace = {
+        x: x,
+        y: y,
+        mode: 'markers',
+        type: 'scatter',
+        name: 'Data Points',
+        marker: { color: '#0077cc', size: 8 }
+      };
+      const lineTrace = {
+        x: regressionLineX,
+        y: regressionLineY,
+        mode: 'lines',
+        type: 'scatter',
+        name: 'Regression Line',
+        line: { color: '#cc7700', width: 3 }
+      };
 
-      const layout = {
+      const plotTitle = document.getElementById("plot-title").value.trim() || `Linear Regression: ${yLabel} vs ${xLabel}`;
+
+      Plotly.newPlot('plot', [scatterTrace, lineTrace], {
         title: plotTitle,
         xaxis: { title: xLabel },
         yaxis: { title: yLabel },
-        margin: { t: 50, b: 50 }
-      };
-
-      Plotly.newPlot('plot', data, layout, {responsive: true});
-      showOutput("");
-
-      // Display stats panel
-      showStatsPanel(`
-        <h3>Regression Statistics</h3>
-        <table>
-          <tr><th>Slope (m)</th><td>${m.toFixed(5)}</td></tr>
-          <tr><th>Intercept (b)</th><td>${b.toFixed(5)}</td></tr>
-          <tr><th>R² (Coefficient of Determination)</th><td>${r2.toFixed(5)}</td></tr>
-          <tr><th>Data Points</th><td>${x.length}</td></tr>
-        </table>
-      `);
+        margin: { t: 60 }
+      });
     }
 
-    // Run simple line plot (x,y)
+    // Line Plot
     function runLinePlot(x, y) {
-      clearStatsPanel();
-      if (x.length !== y.length) {
-        showOutput("X and Y must have the same number of values.");
+      clearOutput();
+      if (x.length !== y.length || x.length === 0) {
+        showOutput("X and Y must have the same number of elements and not be empty.");
         return;
       }
 
-      let plotTitle = document.getElementById("plot-title").value.trim();
-      if (!plotTitle) plotTitle = "Line Plot: " + yLabel + " vs " + xLabel;
-
-      const data = [{
-        x, y,
+      const trace = {
+        x: x,
+        y: y,
         mode: 'lines+markers',
         type: 'scatter',
-        line: { color: '#0077cc' },
+        name: `${yLabel} over ${xLabel}`,
+        line: { color: '#0077cc', width: 2 },
         marker: { size: 6 }
-      }];
+      };
 
-      const layout = {
+      const plotTitle = document.getElementById("plot-title").value.trim() || `Line Plot: ${yLabel} over ${xLabel}`;
+
+      Plotly.newPlot('plot', [trace], {
         title: plotTitle,
         xaxis: { title: xLabel },
         yaxis: { title: yLabel },
-        margin: { t: 50, b: 50 }
-      };
-
-      Plotly.newPlot('plot', data, layout, {responsive: true});
-      showOutput("");
+        margin: { t: 60 }
+      });
     }
 
-    // Run bar chart (x categories and y values)
+    // Bar Chart
     function runBarChart(x, y) {
-      clearStatsPanel();
-      if (x.length !== y.length) {
-        showOutput("X and Y must have the same number of values.");
+      clearOutput();
+      if (x.length !== y.length || x.length === 0) {
+        showOutput("X and Y must have the same number of elements and not be empty.");
         return;
       }
 
-      // For bar charts, x can be categories or numbers; convert all to strings
-      const xLabels = x.map(v => String(v));
-
-      let plotTitle = document.getElementById("plot-title").value.trim();
-      if (!plotTitle) plotTitle = "Bar Chart: " + yLabel + " vs " + xLabel;
-
-      const data = [{
-        x: xLabels,
-        y,
+      const trace = {
+        x: x,
+        y: y,
         type: 'bar',
+        name: `${yLabel} per ${xLabel}`,
         marker: { color: '#0077cc' }
-      }];
+      };
 
-      const layout = {
+      const plotTitle = document.getElementById("plot-title").value.trim() || `Bar Chart: ${yLabel} per ${xLabel}`;
+
+      Plotly.newPlot('plot', [trace], {
         title: plotTitle,
         xaxis: { title: xLabel },
         yaxis: { title: yLabel },
-        margin: { t: 50, b: 50 }
-      };
-
-      Plotly.newPlot('plot', data, layout, {responsive: true});
-      showOutput("");
+        margin: { t: 60 }
+      });
     }
 
-    // Run histogram for Y values
+    // Histogram
     function runHistogram(y) {
-      clearStatsPanel();
+      clearOutput();
+      if (y.length === 0) {
+        showOutput("Y values are empty.");
+        return;
+      }
 
-      let plotTitle = document.getElementById("plot-title").value.trim();
-      if (!plotTitle) plotTitle = "Histogram of " + yLabel;
-
-      const data = [{
+      const trace = {
         x: y,
         type: 'histogram',
-        marker: { color: '#0077cc' }
-      }];
-
-      const layout = {
-        title: plotTitle,
-        xaxis: { title: yLabel },
-        yaxis: { title: 'Frequency' },
-        margin: { t: 50, b: 50 }
+        marker: { color: '#0077cc' },
+        name: yLabel
       };
 
-      Plotly.newPlot('plot', data, layout, {responsive: true});
-      showOutput("");
+      const plotTitle = document.getElementById("plot-title").value.trim() || `Histogram of ${yLabel}`;
+
+      Plotly.newPlot('plot', [trace], {
+        title: plotTitle,
+        xaxis: { title: yLabel },
+        yaxis: { title: 'Count' },
+        margin: { t: 60 }
+      });
     }
 
-    // Download currently displayed plot as PNG
+    // Download current plot as PNG
     function downloadPlot() {
-      Plotly.downloadImage('plot', {format: 'png', filename: 'statistical_plot'});
+      Plotly.downloadImage('plot', {format: 'png', filename: 'statistical_plot', width: 1200, height: 800});
     }
   </script>
 </body>
