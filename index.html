@@ -141,6 +141,7 @@
   </style>
 </head>
 <body>
+
   <nav>
     <a href="index.html" class="active">VecPlot</a>
     <a href="3dplot.html">3D Plotter</a>
@@ -154,13 +155,13 @@
 
     <div>
       <label for="uInput">u(x, y) = </label>
-      <input id="uInput" value="sin(y)" oninput="updateLatex()" autocomplete="off" spellcheck="false" />
+      <input id="uInput" value="sin(y)" size="40" oninput="updateLatex()" autocomplete="off" spellcheck="false" />
       <span class="latex-preview" id="uLatex"></span>
     </div>
 
     <div>
       <label for="vInput">v(x, y) = </label>
-      <input id="vInput" value="cos(x)" oninput="updateLatex()" autocomplete="off" spellcheck="false" />
+      <input id="vInput" value="cos(x)" size="40" oninput="updateLatex()" autocomplete="off" spellcheck="false" />
       <span class="latex-preview" id="vLatex"></span>
     </div>
 
@@ -186,8 +187,8 @@
     </div>
 
     <div>
-      <button onclick="plotStreamlines()">Plot Streamlines</button>
-      <button onclick="downloadJPEG()">Download JPEG</button>
+      <button id="plotBtn" onclick="plotStreamlines()">Plot Streamlines</button>
+      <button id="downloadBtn" onclick="downloadJPEG()">Download JPEG</button>
     </div>
 
     <div id="plot-wrapper">
@@ -197,6 +198,8 @@
 
   <script>
     let uCompiled, vCompiled;
+    let latestTraces = [];
+    let latestLayout = {};
 
     function toLatex(expr) {
       try {
@@ -259,7 +262,6 @@
       const density = 40;
       const stepSize = 0.05;
       const steps = 80;
-
       const traces = [];
 
       for (let i = 0; i < density; i++) {
@@ -272,23 +274,20 @@
           const magnitudes = [];
 
           for (let s = 0; s < steps; s++) {
-            const uVal = evaluate(uCompiled, { x: x, y: y });
-            const vVal = evaluate(vCompiled, { x: x, y: y });
+            const uVal = evaluate(uCompiled, { x, y });
+            const vVal = evaluate(vCompiled, { x, y });
             const mag = Math.sqrt(uVal * uVal + vVal * vVal);
             if (mag === 0 || isNaN(mag)) break;
             magnitudes.push(mag);
-
             x += (uVal / mag) * stepSize;
             y += (vVal / mag) * stepSize;
-
             if (x < xMin || x > xMax || y < yMin || y > yMax) break;
-
             streamlineX.push(x);
             streamlineY.push(y);
           }
 
           if (streamlineX.length > 1) {
-            const avgMag = magnitudes.reduce((a,b)=>a+b,0)/magnitudes.length;
+            const avgMag = magnitudes.reduce((a, b) => a + b, 0) / magnitudes.length;
             traces.push({
               x: streamlineX,
               y: streamlineY,
@@ -306,40 +305,32 @@
       const layout = {
         width: 1200,
         height: 800,
-        margin: { t: 0, b: 0, l: 0, r: 0 },
+        margin: { t: 30, b: 30, l: 30, r: 30 },
         plot_bgcolor: 'black',
         paper_bgcolor: 'black',
-        showlegend: false,
-        xaxis: {
-          visible: false,
-          showticklabels: false,
-          showgrid: false,
-          zeroline: false
-        },
-        yaxis: {
-          visible: false,
-          showticklabels: false,
-          showgrid: false,
-          zeroline: false
-        }
+        xaxis: { range: [xMin, xMax], showgrid: false, zeroline: false, color: 'white' },
+        yaxis: { range: [yMin, yMax], showgrid: false, zeroline: false, color: 'white' }
       };
 
-      Plotly.newPlot("plot", traces, layout, { displayModeBar: false });
+      Plotly.newPlot("plot", traces, layout, { staticPlot: false, displayModeBar: false });
+      latestTraces = traces;
+      latestLayout = layout;
     }
 
     function downloadJPEG() {
-      Plotly.toImage(document.getElementById('plot'), { format: 'jpeg', width: 1200, height: 800 })
-        .then(function(dataUrl) {
-          const link = document.createElement('a');
-          link.href = dataUrl;
-          link.download = 'vector_field.jpg';
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-        });
+      Plotly.toImage('plot', {
+        format: 'jpeg',
+        width: 6000,
+        height: 4000
+      }).then(function (dataUrl) {
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = 'vectorflux.jpeg';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      });
     }
-
-    updateLatex(); // Initialize LaTeX preview
   </script>
 </body>
 </html>
