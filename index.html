@@ -79,21 +79,19 @@
       background: #0056b3;
     }
 
+    /* Updated plot container & plot styling for responsive and fitting layout */
     #plot-wrapper {
-      width: 1920px;
-      height: 1080px;
-      overflow: hidden;
+      width: 100%;
+      max-width: 960px;       /* You can increase this for bigger on-screen */
+      aspect-ratio: 16 / 9;   /* Keep 16:9 ratio */
       margin: 20px auto;
       border: 1px solid #444;
       background: black;
-      display: flex;
-      justify-content: center;
-      align-items: center;
     }
 
     #plot {
-      width: 1920px;
-      height: 1080px;
+      width: 100%;
+      height: 100%;
     }
 
     .latex-preview {
@@ -229,16 +227,6 @@
       }
     }
 
-    // Helper to map magnitudes using log scale for smoother coloring
-    function mapMagnitude(mag, minMag, maxMag) {
-      // Clamp mag into [minMag, maxMag]
-      const clamped = Math.min(Math.max(mag, minMag), maxMag);
-      // Map log scale between 0 and 1
-      const logMin = Math.log(minMag);
-      const logMax = Math.log(maxMag);
-      return (Math.log(clamped) - logMin) / (logMax - logMin);
-    }
-
     function plotStreamlines() {
       if (!compileExpressions()) return;
 
@@ -259,53 +247,14 @@
         CubehelixDefault: d3.interpolateCubehelixDefault
       };
 
+      const colorScale = d3.scaleSequential(d3Interpolators[colorName]).domain([0, 2]);
+
       const density = 40;
       const stepSize = 0.05;
       const steps = 80;
 
-      // We'll collect magnitudes for all streamlines to find min and max for color scaling
-      const allMagnitudes = [];
-
-      // First pass: gather magnitudes for all streamlines
-      for (let i = 0; i < density; i++) {
-        for (let j = 0; j < density; j++) {
-          let x = xMin + (xMax - xMin) * i / (density - 1);
-          let y = yMin + (yMax - yMin) * j / (density - 1);
-
-          const magnitudes = [];
-          for (let s = 0; s < steps; s++) {
-            const scope = { x, y };
-            const u = evaluate(uCompiled, scope);
-            const v = evaluate(vCompiled, scope);
-            const mag = Math.sqrt(u * u + v * v) + 1e-8;
-
-            magnitudes.push(mag);
-
-            x += (u / mag) * stepSize;
-            y += (v / mag) * stepSize;
-
-            if (x < xMin || x > xMax || y < yMin || y > yMax) break;
-          }
-
-          if (magnitudes.length > 0) {
-            const avgMag = magnitudes.reduce((a, b) => a + b, 0) / magnitudes.length;
-            allMagnitudes.push(avgMag);
-          }
-        }
-      }
-
-      // Calculate min and max magnitude, with a small buffer to avoid zero
-      const minMag = Math.max(0.01, Math.min(...allMagnitudes));
-      const maxMag = Math.max(...allMagnitudes);
-
-      const colorScale = (mag) => {
-        const t = mapMagnitude(mag, minMag, maxMag);
-        return d3Interpolators[colorName](t);
-      };
-
       const traces = [];
 
-      // Second pass: generate traces with smooth coloring
       for (let i = 0; i < density; i++) {
         for (let j = 0; j < density; j++) {
           let x = xMin + (xMax - xMin) * i / (density - 1);
@@ -319,10 +268,13 @@
             const scope = { x, y };
             const u = evaluate(uCompiled, scope);
             const v = evaluate(vCompiled, scope);
-            const mag = Math.sqrt(u * u + v * v) + 1e-8;
+
+            const mag = Math.sqrt(u * u + v * v);
+            if (mag < 1e-6) break;
 
             magnitudes.push(mag);
 
+            // Euler integration for streamline
             x += (u / mag) * stepSize;
             y += (v / mag) * stepSize;
 
@@ -332,24 +284,31 @@
             streamlineY.push(y);
           }
 
-          if (streamlineX.length > 1) {
-            const avgMag = magnitudes.reduce((a, b) => a + b, 0) / magnitudes.length;
+          if (streamlineX.length < 2) continue;
 
-            traces.push({
-              type: 'scatter',
-              mode: 'lines',
-              line: {
-                width: 2,
-                shape: 'spline',
-                simplify: false,
-                color: colorScale(avgMag)
-              },
-              x: streamlineX,
-              y: streamlineY,
-              hoverinfo: 'none',
-              showlegend: false
-            });
-          }
+          // Smooth color gradient along streamline by magnitude
+          const maxMag = Math.max(...magnitudes);
+          const minMag = Math.min(...magnitudes);
+          const colors = magnitudes.map(m => colorScale((m - minMag) / (maxMag - minMag + 1e-12)));
+
+          // Approximate color by averaging colors along streamline for line color
+          // Plotly only supports single line color per trace, so pick median magnitude
+          const medianMag = magnitudes[Math.floor(magnitudes.length / 2)];
+          const lineColor = colorScale((medianMag - minMag) / (maxMag - minMag + 1e-12));
+
+          traces.push({
+            x: streamlineX,
+            y: streamlineY,
+            mode: 'lines',
+            line: {
+              color: lineColor,
+              width: 1.5,
+              shape: 'spline',
+              smoothing: 1.3
+            },
+            hoverinfo: 'none',
+            showlegend: false
+          });
         }
       }
 
@@ -358,22 +317,26 @@
         yaxis: { range: [yMin, yMax], visible: false, scaleanchor: 'x' },
         paper_bgcolor: 'black',
         plot_bgcolor: 'black',
-        margin: { l: 0, r: 0, b: 0, t: 0 }
-      }, { staticPlot: true, responsive: true });
+        margin: { l: 0, r: 0, b: 0, t: 0 },
+        width: 960,
+        height: 540
+      }, {
+        staticPlot: true,
+        displayModeBar: false
+      });
     }
-
-    // Trigger initial latex update and initial plot
-    updateLatex();
-    plotStreamlines();
 
     function downloadJPEG() {
       Plotly.downloadImage('plot', {
         format: 'jpeg',
-        width: 6000,
-        height: 4000,
+        width: 1920,
+        height: 1080,
         filename: 'vectorfield_streamlines'
       });
     }
+
+    // Initialize latex preview
+    updateLatex();
   </script>
 </body>
 </html>
