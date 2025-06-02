@@ -155,13 +155,13 @@
 
     <div>
       <label for="uInput">u(x, y) = </label>
-      <input id="uInput" value="sin(y)" size="40" oninput="updateLatex()" autocomplete="off" spellcheck="false" />
+      <input id="uInput" value="sin(y)" oninput="updateLatex()" />
       <span class="latex-preview" id="uLatex"></span>
     </div>
 
     <div>
       <label for="vInput">v(x, y) = </label>
-      <input id="vInput" value="cos(x)" size="40" oninput="updateLatex()" autocomplete="off" spellcheck="false" />
+      <input id="vInput" value="cos(x)" oninput="updateLatex()" />
       <span class="latex-preview" id="vLatex"></span>
     </div>
 
@@ -187,8 +187,8 @@
     </div>
 
     <div>
-      <button id="plotBtn" onclick="plotStreamlines()">Plot Streamlines</button>
-      <button id="downloadBtn" onclick="downloadJPEG()">Download JPEG</button>
+      <button onclick="plotStreamlines()">Plot Streamlines</button>
+      <button onclick="downloadJPEG()">Download JPEG</button>
     </div>
 
     <div id="plot-wrapper">
@@ -198,8 +198,6 @@
 
   <script>
     let uCompiled, vCompiled;
-    let latestTraces = [];
-    let latestLayout = {};
 
     function toLatex(expr) {
       try {
@@ -212,7 +210,6 @@
     function updateLatex() {
       const uExpr = document.getElementById('uInput').value.trim();
       const vExpr = document.getElementById('vInput').value.trim();
-
       document.getElementById('uLatex').innerHTML = `\\( u(x, y) = ${toLatex(uExpr)} \\)`;
       document.getElementById('vLatex').innerHTML = `\\( v(x, y) = ${toLatex(vExpr)} \\)`;
       MathJax.typesetPromise();
@@ -313,24 +310,15 @@
       };
 
       Plotly.newPlot("plot", traces, layout, { staticPlot: false, displayModeBar: false });
-      latestTraces = traces;
-      latestLayout = layout;
     }
 
     function downloadJPEG() {
-      Plotly.toImage('plot', {
-        format: 'jpeg',
-        width: 6000,
-        height: 4000
-      }).then(function (dataUrl) {
-        const link = document.createElement('a');
-        link.href = dataUrl;
-        link.download = 'vectorflux.jpeg';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      });
+      Plotly.downloadImage("plot", { format: "jpeg", filename: "vectorflux_streamlines" });
     }
+
+    // Initialize LaTeX preview
+    updateLatex();
   </script>
+
 </body>
 </html>
