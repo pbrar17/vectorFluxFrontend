@@ -323,27 +323,33 @@
         }
       }
 
-      const layout = {
-        paper_bgcolor: 'black',
-        plot_bgcolor: 'black',
-        xaxis: {
-          range: [xMin, xMax],
-          zeroline: false,
-          showgrid: false,
-          color: 'white'
-        },
-        yaxis: {
-          range: [yMin, yMax],
-          scaleanchor: 'x',
-          zeroline: false,
-          showgrid: false,
-          color: 'white'
-        },
-        margin: { t: 20, b: 50, l: 50, r: 20 },
-        showlegend: false,
-        hovermode: false,
-        dragmode: 'zoom'
-      };
+     const layout = {
+  paper_bgcolor: 'black',
+  plot_bgcolor: 'black',
+  xaxis: {
+    range: [xMin, xMax],
+    visible: false,     // hide axis line, ticks, labels
+    zeroline: false,
+    showgrid: false,
+  },
+  yaxis: {
+    range: [yMin, yMax],
+    scaleanchor: 'x',
+    visible: false,     // hide axis line, ticks, labels
+    zeroline: false,
+    showgrid: false,
+  },
+  margin: { t: 0, b: 0, l: 0, r: 0 }, // no margin/padding
+  // Remove legend, hover, drag modes to keep clean
+  showlegend: false,
+  hovermode: false,
+  dragmode: false,
+  // Disable axis labels and padding:
+  autosize: false,
+  width: 1920,
+  height: 1080
+};
+
 
       Plotly.newPlot('plot', traces, layout, {responsive: true, staticPlot: false});
     }
