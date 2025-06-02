@@ -355,7 +355,7 @@
     }
 
     function downloadJPEG() {
-      Plotly.toImage('plot', {format: 'jpeg', width: 1920, height: 1080})
+      Plotly.toImage('plot', {format: 'jpeg', width: 6000, height: 4000})
         .then(function(dataUrl) {
           const link = document.createElement('a');
           link.href = dataUrl;
