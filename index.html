@@ -320,7 +320,8 @@
     }
 
     function downloadJPEG() {
-      Plotly.downloadImage('plot', {
+      const plotDiv = document.getElementById('plot');
+      Plotly.downloadImage(plotDiv, {
         format: 'jpeg',
         width: 6000,
         height: 4000,
@@ -331,4 +332,4 @@
     updateLatex();
   </script>
 </body>
-</html> 
+</html>
