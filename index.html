@@ -144,12 +144,14 @@
 </head>
 <body>
 
-  <nav>
-    <a href="index.html" class="active">VecPlot</a>
-    <a href="3dplot.html">3D Plotter</a>
-    <a href="vectorfield3dplotter.html">Vector Field Plotter</a>
-    <a href="statisticalsolver.html">Statistical Solver</a>
-  </nav>
+ <nav>
+            <!-- <a href="index.html">Derivative Calculator</a> -->
+            <a href="index.html" class="active">VecPlot</a>
+            <a href="3dplot.html">3D Plotter</a>
+            <a href="vectorfield3dplotter.html">Vector Field Plotter</a>
+            <a href="statisticalsolver.html">Statistical Solver</a>
+            
+        </nav>
 
   <div class="container">
     <h1 class="mesmerizing-title">VectorFlux</h1>
@@ -171,19 +173,19 @@
     <div class="range-inputs">
       <div>
         <label for="xMin">xMin</label><br>
-        <input id="xMin" type="number" value="-5" step="0.1">
+        <input id="xMin" type="number" value="-5">
       </div>
       <div>
         <label for="xMax">xMax</label><br>
-        <input id="xMax" type="number" value="5" step="0.1">
+        <input id="xMax" type="number" value="5">
       </div>
       <div>
         <label for="yMin">yMin</label><br>
-        <input id="yMin" type="number" value="-5" step="0.1">
+        <input id="yMin" type="number" value="-5">
       </div>
       <div>
         <label for="yMax">yMax</label><br>
-        <input id="yMax" type="number" value="5" step="0.1">
+        <input id="yMax" type="number" value="5">
       </div>
     </div>
 
@@ -250,8 +252,8 @@
       }
     }
 
-    function generateTraces() {
-      if (!compileExpressions()) return null;
+    function plotStreamlines() {
+      if (!compileExpressions()) return;
 
       const xMin = parseFloat(document.getElementById("xMin").value);
       const xMax = parseFloat(document.getElementById("xMax").value);
@@ -267,199 +269,106 @@
         Cool: d3.interpolateCool,
         Warm: d3.interpolateWarm,
         Rainbow: d3.interpolateRainbow,
-        CubehelixDefault: d3.interpolateCubehelixDefault,
+        CubehelixDefault: d3.interpolateCubehelixDefault
       };
-      const colorInterpolator = d3Interpolators[colorName] || d3.interpolateViridis;
 
-      // Sample points
-      const nx = 80;
-      const ny = 60;
-      const xs = [];
-      const ys = [];
-      for (let i = 0; i < nx; i++) {
-        xs.push(xMin + (xMax - xMin) * i / (nx - 1));
-      }
-      for (let j = 0; j < ny; j++) {
-        ys.push(yMin + (yMax - yMin) * j / (ny - 1));
-      }
+      const colorScale = d3.scaleSequential(d3Interpolators[colorName]).domain([0, 2]);
 
-      // Evaluate vector magnitudes for color mapping
-      let magMin = Infinity;
-      let magMax = -Infinity;
-      const mags = [];
-      for (let j = 0; j < ny; j++) {
-        for (let i = 0; i < nx; i++) {
-          const scope = { x: xs[i], y: ys[j] };
-          const uVal = evaluate(uCompiled, scope);
-          const vVal = evaluate(vCompiled, scope);
-          const mag = Math.sqrt(uVal * uVal + vVal * vVal);
-          mags.push(mag);
-          if (mag < magMin) magMin = mag;
-          if (mag > magMax) magMax = mag;
-        }
-      }
-      if (magMin === magMax) {
-        magMin = 0;
-      }
+      const density = 40;
+      const stepSize = 0.05;
+      const steps = 80;
 
-      // Generate streamline traces: here we do simple quiver (arrows) for demo
-      // For actual streamlines you'd implement ODE integration or use a library
-      // For simplicity, plot arrows at a grid of points
+      const traces = [];
 
-      const arrowLength = (xMax - xMin) / nx * 0.8;
+      for (let i = 0; i < density; i++) {
+        for (let j = 0; j < density; j++) {
+          let x = xMin + (xMax - xMin) * i / (density - 1);
+          let y = yMin + (yMax - yMin) * j / (density - 1);
 
-      const xArr = [];
-      const yArr = [];
-      const uArr = [];
-      const vArr = [];
-      const colors = [];
+          const streamlineX = [x];
+          const streamlineY = [y];
+          const magnitudes = [];
 
-      for (let j = 0; j < ny; j += 4) { // sparser for clarity
-        for (let i = 0; i < nx; i += 4) {
-          const scope = { x: xs[i], y: ys[j] };
-          const uVal = evaluate(uCompiled, scope);
-          const vVal = evaluate(vCompiled, scope);
-          const mag = Math.sqrt(uVal * uVal + vVal * vVal);
-          if (mag === 0) continue;
+          for (let s = 0; s < steps; s++) {
+            const uVal = evaluate(uCompiled, { x: x, y: y });
+            const vVal = evaluate(vCompiled, { x: x, y: y });
+            const mag = Math.sqrt(uVal * uVal + vVal * vVal);
+            if (mag === 0 || isNaN(mag)) break;
+            magnitudes.push(mag);
 
-          xArr.push(xs[i]);
-          yArr.push(ys[j]);
-          uArr.push(uVal / mag * arrowLength);
-          vArr.push(vVal / mag * arrowLength);
-          const c = colorInterpolator((mag - magMin) / (magMax - magMin));
-          colors.push(c);
+            // Euler integration step forward
+            x += (uVal / mag) * stepSize;
+            y += (vVal / mag) * stepSize;
+
+            if (x < xMin || x > xMax || y < yMin || y > yMax) break;
+
+            streamlineX.push(x);
+            streamlineY.push(y);
+          }
+
+          if (streamlineX.length > 1) {
+            // Average magnitude for coloring
+            const avgMag = magnitudes.reduce((a,b)=>a+b,0)/magnitudes.length;
+            traces.push({
+              x: streamlineX,
+              y: streamlineY,
+              mode: 'lines',
+              line: {
+                color: colorScale(avgMag),
+                width: 1.5
+              },
+              hoverinfo: 'none'
+            });
+          }
         }
       }
 
-      // Construct arrow traces using Plotly's scatter with line segments
-      // Each arrow is a line + triangle at end - Plotly does not support arrow markers natively
-      // For demo, use lines only
+     const layout = {
+  paper_bgcolor: 'black',
+  plot_bgcolor: 'black',
+  xaxis: {
+    range: [xMin, xMax],
+    visible: false,     // hide axis line, ticks, labels
+    zeroline: false,
+    showgrid: false,
+  },
+  yaxis: {
+    range: [yMin, yMax],
+    scaleanchor: 'x',
+    visible: false,     // hide axis line, ticks, labels
+    zeroline: false,
+    showgrid: false,
+  },
+  margin: { t: 0, b: 0, l: 0, r: 0 }, // no margin/padding
+  // Remove legend, hover, drag modes to keep clean
+  showlegend: false,
+  hovermode: false,
+  dragmode: false,
+  // Disable axis labels and padding:
+  autosize: false,
+  width: 1920,
+  height: 1080
+};
 
-      const arrowTraces = [];
-      for (let k = 0; k < xArr.length; k++) {
-        arrowTraces.push({
-          type: 'scatter',
-          mode: 'lines',
-          x: [xArr[k], xArr[k] + uArr[k]],
-          y: [yArr[k], yArr[k] + vArr[k]],
-          line: {
-            color: colors[k],
-            width: 2
-          },
-          hoverinfo: 'none',
-          showlegend: false
+
+      Plotly.newPlot('plot', traces, layout, {responsive: true, staticPlot: false});
+    }
+
+    function downloadJPEG() {
+      Plotly.toImage('plot', {format: 'jpeg', width: 6000, height: 4000})
+        .then(function(dataUrl) {
+          const link = document.createElement('a');
+          link.href = dataUrl;
+          link.download = 'vectorfield_streamlines.jpeg';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
         });
-      }
-
-      return arrowTraces;
     }
 
-    function plotStreamlines() {
-      const traces = generateTraces();
-      if (!traces) return;
-
-      const xMin = parseFloat(document.getElementById("xMin").value);
-      const xMax = parseFloat(document.getElementById("xMax").value);
-      const yMin = parseFloat(document.getElementById("yMin").value);
-      const yMax = parseFloat(document.getElementById("yMax").value);
-
-      const layout = {
-        autosize: false,
-        width: 1080,
-        height: 720,
-        margin: { l: 40, r: 40, b: 40, t: 40 },
-        paper_bgcolor: 'black',
-        plot_bgcolor: 'black',
-        xaxis: {
-          range: [xMin, xMax],
-          zeroline: false,
-          showgrid: false,
-          showticklabels: false,
-          ticks: '',
-          showline: false,
-          scaleanchor: 'y',
-          scaleratio: 1,
-        },
-        yaxis: {
-          range: [yMin, yMax],
-          zeroline: false,
-          showgrid: false,
-          showticklabels: false,
-          ticks: '',
-          showline: false,
-        },
-        hovermode: false,
-      };
-
-      Plotly.newPlot('plot', traces, layout, { displayModeBar: false, staticPlot: false });
-    }
-
-    async function downloadJPEG() {
-      const xMin = parseFloat(document.getElementById("xMin").value);
-      const xMax = parseFloat(document.getElementById("xMax").value);
-      const yMin = parseFloat(document.getElementById("yMin").value);
-      const yMax = parseFloat(document.getElementById("yMax").value);
-
-      const layout = {
-        autosize: false,
-        width: 1080,
-        height: 720,
-        margin: { l: 40, r: 40, b: 40, t: 40 },
-        paper_bgcolor: 'black',
-        plot_bgcolor: 'black',
-        xaxis: {
-          range: [xMin, xMax],
-          zeroline: false,
-          showgrid: false,
-          showticklabels: false,
-          ticks: '',
-          showline: false,
-          scaleanchor: 'y',
-          scaleratio: 1,
-        },
-        yaxis: {
-          range: [yMin, yMax],
-          zeroline: false,
-          showgrid: false,
-          showticklabels: false,
-          ticks: '',
-          showline: false,
-        },
-        hovermode: false,
-      };
-
-      const traces = generateTraces();
-      if (!traces) return;
-
-      try {
-        const imgData = await Plotly.toImage({
-          data: traces,
-          layout: layout,
-          format: 'jpeg',
-          width: 1080,
-          height: 720,
-          scale: 1,
-        });
-
-        const link = document.createElement('a');
-        link.href = imgData;
-        link.download = 'vectorflux-streamlines.jpg';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      } catch (err) {
-        alert("Failed to generate image. Please try again.");
-        console.error(err);
-      }
-    }
-
-    // Initial latex rendering
+    // Initialize preview on load
     updateLatex();
-
-    // Initial plot on page load
-    window.onload = plotStreamlines;
-
+    plotStreamlines();
   </script>
-
 </body>
 </html>
