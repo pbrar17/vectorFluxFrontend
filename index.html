@@ -321,21 +321,13 @@
 
   function downloadJPEG() {
   Plotly.downloadImage('plot', {
-    format: 'jpeg',  // JPEG format is correct
+    format: 'jpeg',
     width: 6000,
     height: 4000,
-    filename: 'vector_field_streamlines_art'
-  }).then(function(dataUrl) {
-    const link = document.createElement('a');
-    link.href = dataUrl;
-    link.download = 'vector_field_streamlines_art.jpg';  // .jpg extension here
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }).catch(function(err) {
-    alert('Error downloading image: ' + err);
+    filename: 'vector_field_streamlines_art.jpg'  // <--- Add .jpg here
   });
 }
+
 
 
 
