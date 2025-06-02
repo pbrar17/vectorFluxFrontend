@@ -3,10 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <title>Statistical Solver</title>
+  <!-- External libraries -->
   <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mathjs@11.11.0/lib/browser/math.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+  
   <style>
+    /* General body style */
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       margin: 0;
@@ -14,6 +17,7 @@
       background-color: #fdfdfd;
       color: #333;
     }
+    /* Header styling */
     header {
       background-color: #0077cc;
       color: white;
@@ -24,6 +28,7 @@
       margin: 0;
       font-size: 2em;
     }
+    /* Navigation styling */
     nav {
       margin-top: 10px;
       background: #eee;
@@ -39,13 +44,15 @@
     nav a:hover {
       text-decoration: underline;
     }
+    /* Main container */
     main {
       padding: 40px;
       max-width: 900px;
       margin: auto;
     }
+    /* Form styling */
     form {
-      background-color: #ffffff;
+      background-color: #fff;
       padding: 25px;
       border-radius: 8px;
       box-shadow: 0 0 10px rgba(0, 119, 204, 0.1);
@@ -59,12 +66,12 @@
     select {
       width: 100%;
       padding: 10px;
-      margin-top: 5px;
-      margin-bottom: 15px;
+      margin: 5px 0 15px 0;
       border: 1px solid #ccc;
       border-radius: 5px;
       box-sizing: border-box;
     }
+    /* Buttons */
     button {
       padding: 10px 20px;
       background-color: #0077cc;
@@ -74,15 +81,18 @@
       font-size: 1em;
       cursor: pointer;
       margin-right: 10px;
+      transition: background-color 0.3s ease;
     }
     button:hover {
       background-color: #005fa3;
     }
+    /* Plot container */
     #plot {
       width: 100%;
       height: 500px;
       margin-top: 30px;
     }
+    /* Output message box */
     #output {
       background: #f0f9ff;
       padding: 15px;
@@ -91,6 +101,7 @@
       margin-top: 20px;
       font-size: 1.1em;
     }
+    /* Stats panel styling */
     #stats-panel {
       margin-top: 20px;
       background-color: #fefefe;
@@ -98,6 +109,7 @@
       border-radius: 8px;
       padding: 15px;
       box-shadow: 0 0 5px rgba(0,0,0,0.05);
+      display: none;
     }
     #stats-panel h3 {
       margin-top: 0;
@@ -118,16 +130,17 @@
     }
   </style>
 </head>
+
 <body>
   <header>
     <h1>Statistical Solver</h1>
     <nav>
-    <!-- <a href="index.html">Derivative Calculator</a> -->
-    <a href="3dplot.html">3D Plotter</a>
-    <a href="vectorfield3dplotter.html">Vector Field Plotter</a>
-    <a href="statisticalsolver.html">Statistical Solver</a>
-    <a href="index.html" class="active">VecPlot</a>
-  </nav>
+      <!-- <a href="index.html">Derivative Calculator</a> -->
+      <a href="3dplot.html">3D Plotter</a>
+      <a href="vectorfield3dplotter.html">Vector Field Plotter</a>
+      <a href="statisticalsolver.html">Statistical Solver</a>
+      <a href="index.html" class="active">VecPlot</a>
+    </nav>
   </header>
 
   <main>
@@ -157,47 +170,53 @@
     </form>
 
     <div id="output"></div>
-    <div id="stats-panel" style="display: none;"></div>
+    <div id="stats-panel"></div>
     <div id="plot"></div>
   </main>
 
   <script>
+    // Labels and data storage
     let xLabel = 'X';
     let yLabel = 'Y';
     let currentPlotType = 'linear-regression';
     let lastX = [];
     let lastY = [];
 
+    // Handle form submission
     document.getElementById("regression-form").addEventListener("submit", (e) => {
       e.preventDefault();
 
+      // Reset labels
       xLabel = 'X';
       yLabel = 'Y';
 
       currentPlotType = document.getElementById("plot-type").value;
 
+      // Parse inputs
       const xStr = document.getElementById("x-values").value;
       const yStr = document.getElementById("y-values").value;
 
       try {
         const x = xStr.split(",").map(s => parseFloat(s.trim()));
         const y = yStr.split(",").map(s => parseFloat(s.trim()));
-        if (currentPlotType === 'histogram') {
-          runHistogram(y);
-        } else if (currentPlotType === 'linear-regression') {
-          runRegression(x, y);
-        } else if (currentPlotType === 'line') {
-          runLinePlot(x, y);
-        } else if (currentPlotType === 'bar') {
-          runBarChart(x, y);
+
+        // Call plotting functions based on selected type
+        switch (currentPlotType) {
+          case 'histogram': runHistogram(y); break;
+          case 'linear-regression': runRegression(x, y); break;
+          case 'line': runLinePlot(x, y); break;
+          case 'bar': runBarChart(x, y); break;
+          default: throw new Error("Unknown plot type");
         }
+
         lastX = x;
         lastY = y;
       } catch (err) {
-        document.getElementById("output").innerText = "Error processing input: " + err.message;
+        showOutput("Error processing input: " + err.message);
       }
     });
 
+    // Handle CSV upload and parsing
     document.getElementById("csv-upload").addEventListener("change", (e) => {
       const file = e.target.files[0];
       if (!file) return;
@@ -208,10 +227,14 @@
         skipEmptyLines: true,
         complete: function(results) {
           const data = results.data;
+          if (data.length === 0) {
+            showOutput("CSV file is empty.");
+            return;
+          }
 
           const firstRow = data[0];
           if (!firstRow || Object.keys(firstRow).length < 2) {
-            document.getElementById("output").innerText = "CSV must contain at least two numeric columns.";
+            showOutput("CSV must contain at least two numeric columns.");
             return;
           }
 
@@ -224,211 +247,225 @@
           const x = data.map(row => row[col1]);
           const y = data.map(row => row[col2]);
 
-          if (x.some(v => typeof v !== 'number' || isNaN(v)) || y.some(v => typeof v !== 'number' || isNaN(v))) {
-            document.getElementById("output").innerText = "Selected columns must contain numeric values.";
+          if (x.some(v => typeof v !== 'number' || isNaN(v)) ||
+              y.some(v => typeof v !== 'number' || isNaN(v))) {
+            showOutput("Selected columns must contain numeric values.");
             return;
           }
 
           currentPlotType = document.getElementById("plot-type").value;
-          if (currentPlotType === 'histogram') {
-            runHistogram(y);
-          } else if (currentPlotType === 'linear-regression') {
-            runRegression(x, y);
-          } else if (currentPlotType === 'line') {
-            runLinePlot(x, y);
-          } else if (currentPlotType === 'bar') {
-            runBarChart(x, y);
+
+          // Call plotting functions based on selected type
+          switch (currentPlotType) {
+            case 'histogram': runHistogram(y); break;
+            case 'linear-regression': runRegression(x, y); break;
+            case 'line': runLinePlot(x, y); break;
+            case 'bar': runBarChart(x, y); break;
+            default: showOutput("Unknown plot type selected."); return;
           }
+
           lastX = x;
           lastY = y;
         }
       });
     });
 
-    // Linear Regression
+    // Display message in #output box
+    function showOutput(msg) {
+      const outputDiv = document.getElementById("output");
+      outputDiv.textContent = msg;
+    }
+
+    // Clear the stats panel
+    function clearStatsPanel() {
+      const panel = document.getElementById("stats-panel");
+      panel.style.display = "none";
+      panel.innerHTML = "";
+    }
+
+    // Show stats panel with given HTML content
+    function showStatsPanel(html) {
+      const panel = document.getElementById("stats-panel");
+      panel.style.display = "block";
+      panel.innerHTML = html;
+    }
+
+    // Run linear regression and plot scatter + best fit line
     function runRegression(x, y) {
+      clearStatsPanel();
       if (x.length !== y.length) {
-        document.getElementById("output").innerText = "Error: X and Y arrays must be the same length.";
+        showOutput("X and Y must have the same number of values.");
+        return;
+      }
+      if (x.length < 2) {
+        showOutput("Need at least two data points for regression.");
         return;
       }
 
-      const n = x.length;
-      const sumX = math.sum(x);
-      const sumY = math.sum(y);
-      const sumXY = math.sum(x.map((xi, i) => xi * y[i]));
-      const sumXX = math.sum(x.map(xi => xi * xi));
+      // Compute means
+      const meanX = math.mean(x);
+      const meanY = math.mean(y);
 
-      const denominator = (n * sumXX - sumX * sumX);
+      // Calculate slope (m) and intercept (b)
+      let numerator = 0, denominator = 0;
+      for (let i = 0; i < x.length; i++) {
+        numerator += (x[i] - meanX) * (y[i] - meanY);
+        denominator += (x[i] - meanX) ** 2;
+      }
       if (denominator === 0) {
-        document.getElementById("output").innerText = "Error: Cannot compute regression (division by zero).";
+        showOutput("Cannot compute regression: all X values are identical.");
         return;
       }
+      const m = numerator / denominator;
+      const b = meanY - m * meanX;
 
-      const slope = (n * sumXY - sumX * sumY) / denominator;
-      const intercept = (sumY - slope * sumX) / n;
+      // Compute R squared
+      let ssTot = 0, ssRes = 0;
+      for (let i = 0; i < y.length; i++) {
+        const yPred = m * x[i] + b;
+        ssRes += (y[i] - yPred) ** 2;
+        ssTot += (y[i] - meanY) ** 2;
+      }
+      const r2 = 1 - (ssRes / ssTot);
 
-      const yFit = x.map(xi => slope * xi + intercept);
+      // Prepare regression line points
+      const xLine = [Math.min(...x), Math.max(...x)];
+      const yLine = xLine.map(xv => m * xv + b);
 
-      document.getElementById("output").innerHTML = `
-        <strong>Linear Regression:</strong><br>
-        y = ${slope.toFixed(4)}x + ${intercept.toFixed(4)}<br>
-        R² = ${computeRSquared(y, yFit).toFixed(4)}
-      `;
+      // Prepare plot title
+      let plotTitle = document.getElementById("plot-title").value.trim();
+      if (!plotTitle) plotTitle = "Linear Regression: " + yLabel + " vs " + xLabel;
 
-      displayDescriptiveStats(x, y);
-
-      const trace1 = {
-        x: x,
-        y: y,
-        mode: 'markers',
-        name: 'Data',
-        type: 'scatter'
-      };
-
-      const trace2 = {
-        x: x,
-        y: yFit,
-        mode: 'lines',
-        name: 'Fit Line',
-        line: { color: 'red' }
-      };
-
-      const customTitle = document.getElementById("plot-title").value || 'Linear Regression Plot';
+      // Plot with Plotly
+      const data = [
+        {
+          x, y,
+          mode: 'markers',
+          type: 'scatter',
+          name: 'Data Points',
+          marker: { color: '#0077cc' }
+        },
+        {
+          x: xLine,
+          y: yLine,
+          mode: 'lines',
+          type: 'scatter',
+          name: `Best Fit Line (y = ${m.toFixed(3)}x + ${b.toFixed(3)})`,
+          line: { color: '#ff6600', width: 3 }
+        }
+      ];
 
       const layout = {
-        title: customTitle,
+        title: plotTitle,
         xaxis: { title: xLabel },
-        yaxis: { title: yLabel }
+        yaxis: { title: yLabel },
+        margin: { t: 50, b: 50 }
       };
 
-      Plotly.newPlot('plot', [trace1, trace2], layout);
-    }
+      Plotly.newPlot('plot', data, layout, {responsive: true});
+      showOutput("");
 
-    // Compute R²
-    function computeRSquared(actual, predicted) {
-      const meanY = math.mean(actual);
-      const ssTot = math.sum(actual.map(y => (y - meanY) ** 2));
-      const ssRes = math.sum(actual.map((y, i) => (y - predicted[i]) ** 2));
-      return 1 - (ssRes / ssTot);
-    }
-
-    // Display Descriptive Stats (mean, std, min, max, count)
-    function displayDescriptiveStats(x, y) {
-      const stats = `
-        <h3>Descriptive Statistics</h3>
+      // Display stats panel
+      showStatsPanel(`
+        <h3>Regression Statistics</h3>
         <table>
-          <thead>
-            <tr><th></th><th>${xLabel}</th><th>${yLabel}</th></tr>
-          </thead>
-          <tbody>
-            <tr><td>Count</td><td>${x.length}</td><td>${y.length}</td></tr>
-            <tr><td>Mean</td><td>${math.mean(x).toFixed(4)}</td><td>${math.mean(y).toFixed(4)}</td></tr>
-            <tr><td>Standard Deviation</td><td>${math.std(x, 'uncorrected').toFixed(4)}</td><td>${math.std(y, 'uncorrected').toFixed(4)}</td></tr>
-            <tr><td>Minimum</td><td>${math.min(x)}</td><td>${math.min(y)}</td></tr>
-            <tr><td>Maximum</td><td>${math.max(x)}</td><td>${math.max(y)}</td></tr>
-          </tbody>
+          <tr><th>Slope (m)</th><td>${m.toFixed(5)}</td></tr>
+          <tr><th>Intercept (b)</th><td>${b.toFixed(5)}</td></tr>
+          <tr><th>R² (Coefficient of Determination)</th><td>${r2.toFixed(5)}</td></tr>
+          <tr><th>Data Points</th><td>${x.length}</td></tr>
         </table>
-      `;
-      const panel = document.getElementById('stats-panel');
-      panel.style.display = 'block';
-      panel.innerHTML = stats;
+      `);
     }
 
-    // Line Plot
+    // Run simple line plot (x,y)
     function runLinePlot(x, y) {
+      clearStatsPanel();
       if (x.length !== y.length) {
-        document.getElementById("output").innerText = "Error: X and Y arrays must be the same length.";
+        showOutput("X and Y must have the same number of values.");
         return;
       }
-      document.getElementById("output").innerText = "";
-      displayDescriptiveStats(x, y);
 
-      const trace = {
-        x: x,
-        y: y,
+      let plotTitle = document.getElementById("plot-title").value.trim();
+      if (!plotTitle) plotTitle = "Line Plot: " + yLabel + " vs " + xLabel;
+
+      const data = [{
+        x, y,
         mode: 'lines+markers',
-        name: 'Line Plot',
-        type: 'scatter'
-      };
-
-      const customTitle = document.getElementById("plot-title").value || 'Line Plot';
+        type: 'scatter',
+        line: { color: '#0077cc' },
+        marker: { size: 6 }
+      }];
 
       const layout = {
-        title: customTitle,
+        title: plotTitle,
         xaxis: { title: xLabel },
-        yaxis: { title: yLabel }
+        yaxis: { title: yLabel },
+        margin: { t: 50, b: 50 }
       };
 
-      Plotly.newPlot('plot', [trace], layout);
+      Plotly.newPlot('plot', data, layout, {responsive: true});
+      showOutput("");
     }
 
-    // Bar Chart
+    // Run bar chart (x categories and y values)
     function runBarChart(x, y) {
+      clearStatsPanel();
       if (x.length !== y.length) {
-        document.getElementById("output").innerText = "Error: X and Y arrays must be the same length.";
+        showOutput("X and Y must have the same number of values.");
         return;
       }
-      document.getElementById("output").innerText = "";
-      displayDescriptiveStats(x, y);
 
-      const trace = {
-        x: x.map(String), // convert to string labels
-        y: y,
+      // For bar charts, x can be categories or numbers; convert all to strings
+      const xLabels = x.map(v => String(v));
+
+      let plotTitle = document.getElementById("plot-title").value.trim();
+      if (!plotTitle) plotTitle = "Bar Chart: " + yLabel + " vs " + xLabel;
+
+      const data = [{
+        x: xLabels,
+        y,
         type: 'bar',
-        name: 'Bar Chart'
-      };
-
-      const customTitle = document.getElementById("plot-title").value || 'Bar Chart';
+        marker: { color: '#0077cc' }
+      }];
 
       const layout = {
-        title: customTitle,
+        title: plotTitle,
         xaxis: { title: xLabel },
-        yaxis: { title: yLabel }
+        yaxis: { title: yLabel },
+        margin: { t: 50, b: 50 }
       };
 
-      Plotly.newPlot('plot', [trace], layout);
+      Plotly.newPlot('plot', data, layout, {responsive: true});
+      showOutput("");
     }
 
-    // Histogram (only for y values)
+    // Run histogram for Y values
     function runHistogram(y) {
-      if (!Array.isArray(y) || y.length === 0) {
-        document.getElementById("output").innerText = "Error: Provide valid numeric data for histogram.";
-        return;
-      }
-      document.getElementById("output").innerText = "";
-      displayDescriptiveStats([], y);
+      clearStatsPanel();
 
-      const trace = {
+      let plotTitle = document.getElementById("plot-title").value.trim();
+      if (!plotTitle) plotTitle = "Histogram of " + yLabel;
+
+      const data = [{
         x: y,
         type: 'histogram',
-        marker: {
-          color: '#0077cc'
-        },
-        name: 'Histogram'
-      };
-
-      const customTitle = document.getElementById("plot-title").value || 'Histogram';
+        marker: { color: '#0077cc' }
+      }];
 
       const layout = {
-        title: customTitle,
+        title: plotTitle,
         xaxis: { title: yLabel },
-        yaxis: { title: 'Count' }
+        yaxis: { title: 'Frequency' },
+        margin: { t: 50, b: 50 }
       };
 
-      Plotly.newPlot('plot', [trace], layout);
+      Plotly.newPlot('plot', data, layout, {responsive: true});
+      showOutput("");
     }
 
-    // Download Plot as PNG
+    // Download currently displayed plot as PNG
     function downloadPlot() {
-      const plotDiv = document.getElementById('plot');
-      Plotly.toImage(plotDiv, {format: 'png', width: 900, height: 600}).then(function(dataUrl) {
-        const link = document.createElement('a');
-        link.href = dataUrl;
-        link.download = 'statistical_plot.png';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      });
+      Plotly.downloadImage('plot', {format: 'png', filename: 'statistical_plot'});
     }
   </script>
 </body>
