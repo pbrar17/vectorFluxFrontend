@@ -319,15 +319,16 @@
       });
     }
 
-    function downloadJPEG() {
-      const plotDiv = document.getElementById('plot');
-      Plotly.downloadImage(plotDiv, {
-        format: 'jpeg',
-        width: 6000,
-        height: 4000,
-        filename: 'vector_field_streamlines_art'
-      });
-    }
+   function downloadJPEG() {
+  const plotDiv = document.getElementById('plot');
+  Plotly.downloadImage(plotDiv, {
+    format: 'jpeg',
+    width: 6000,
+    height: 4000,
+    filename: 'vector_field_streamlines_art'
+  });
+}
+
 
     updateLatex();
   </script>
