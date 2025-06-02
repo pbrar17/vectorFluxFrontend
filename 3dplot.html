@@ -157,10 +157,10 @@
     });
 
     function plot3DSurface(fStr, xMin, xMax, yMin, yMax, step) {
-      const exprStr = fStr.replace(/\^/g, "**").replace(/ln/g, "log");
+      // Removed replacement of ^ to ** to allow mathjs to parse powers correctly
       let expr;
       try {
-        expr = math.compile(exprStr);
+        expr = math.compile(fStr);
       } catch (err) {
         alert("Invalid function expression.");
         return;
