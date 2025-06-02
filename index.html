@@ -319,17 +319,16 @@
       });
     }
 
-   function downloadJPEG() {
+  function downloadJPEG() {
   Plotly.downloadImage('plot', {
-    format: 'jpeg',
+    format: 'jpeg',  // JPEG format is correct
     width: 6000,
     height: 4000,
     filename: 'vector_field_streamlines_art'
   }).then(function(dataUrl) {
-    // Create a temporary link element
     const link = document.createElement('a');
     link.href = dataUrl;
-    link.download = 'vector_field_streamlines_art.jpeg';
+    link.download = 'vector_field_streamlines_art.jpg';  // .jpg extension here
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -337,6 +336,7 @@
     alert('Error downloading image: ' + err);
   });
 }
+
 
 
     updateLatex();
