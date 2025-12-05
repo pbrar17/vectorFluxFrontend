@@ -121,16 +121,73 @@
     .range-inputs input {
       width: 120px;
     }
+
+    
+    .faq-button {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      padding: 10px 15px;
+      background-color: white;
+      color: black;
+      text-decoration: none;
+      border-radius: 5px;
+      font-weight: bold;
+      transition: background-color 0.3s;
+    }
+
+    .faq-button:hover {
+  background-color: #ccc;
+}
+
+.back-button{
+  top: 20px;
+  right: 20px;
+  padding: 10px 15px;
+  background-color: white;
+  color: black;
+  text-decoration: none;
+  border-radius: 5px;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+.back-button:hover {
+  background-color: #ccc;
+}
+
+.about-button {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  padding: 10px 15px;
+  background-color: white;
+  color: black;
+  text-decoration: none;
+  border-radius: 5px;
+  font-weight: bold;
+  transition: background-color 0.3s;
+}
+
+.about-button:hover {
+  background-color: #ccc;
+}
+
   </style>
 </head>
 <body>
 
-  <nav>
+   <header>
+    <nav>
     <a href="index.html" class="active">VecPlot</a>
     <a href="3dplot.html">3D Plotter</a>
     <a href="vectorfield3dplotter.html">Vector Field Plotter</a>
     <a href="statisticalsolver.html">Statistical Solver</a>
-  </nav>
+            
+        </nav>
+    <a href="about.html" class = "about-button" >About Us</a>
+    <a href="faq.html" class="faq-button">FAQs</a>
+  </header>
 
   <div class="container">
     <h2>Interactive Vector Field Streamline Visualizer</h2>
